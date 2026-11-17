@@ -15,6 +15,7 @@
   const hero = document.querySelector('.g-hero');
   const chapter = document.querySelector('.g-chapter');
   root.style.setProperty('--grade', pal.acc); root.style.setProperty('--grade2', pal.acc2);
+  let lastCh = -2, chT, chOn = false;
   function onScroll() {
     const vh = innerHeight, y = scrollY;
     let cur = -1;
@@ -28,7 +29,12 @@
       const s = scenes[cur]; root.style.setProperty('--grade', s.dataset.grade); root.style.setProperty('--grade2', s.dataset.grade2 || pal.acc2);
       if (chapter) { chapter.querySelector('b').textContent = String(cur + 1).padStart(2, '0'); chapter.querySelector('span').textContent = s.dataset.name; }
     } else { root.style.setProperty('--grade', pal.acc); root.style.setProperty('--grade2', pal.acc2); }
-    if (chapter) { chapter.classList.toggle('on', hero && y > hero.offsetHeight * 0.6 && !STATIC); chapter.style.setProperty('--prog', Math.min(1, y / (document.body.scrollHeight - vh))); }
+    if (chapter) { // round 4: the chapter pill only flashes on a chapter change (1.6s), and never while a form is in view, so it can't cover content
+      const past = hero && y > hero.offsetHeight * 0.6 && !STATIC;
+      const formNear = [...document.querySelectorAll('form, .intake, [data-form]')].some(f => { const r = f.getBoundingClientRect(); return r.top < 110 && r.bottom > 40; });
+      if (cur !== lastCh) { lastCh = cur; clearTimeout(chT); chOn = true; chT = setTimeout(() => { chOn = false; chapter.classList.remove('on'); }, 1600); }
+      chapter.classList.toggle('on', past && chOn && !formNear && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('form')));
+      chapter.style.setProperty('--prog', Math.min(1, y / (document.body.scrollHeight - vh))); }
     eras();
   }
   addEventListener('scroll', onScroll, { passive: true });
@@ -41,63 +47,36 @@
   }
   rail && rail.addEventListener('scroll', eras, { passive: true });
 
-  /* ---------- audio: placeholder beat (Web Audio) or licensed preview ---------- */
-  const A = cfg.audio || {}; const BPM = A.bpm || 92; const STYLE = A.style || 'bounce';
-  let ctx, analyser, data, playing = false, nextT = 0, step = 0, timer;
-  const ROOTS = { bounce: [57, 53, 60, 55], electro: [45, 45, 48, 43], trap: [41, 41, 44, 39], soul: [50, 55, 48, 53] }[STYLE] || [57, 53, 60, 55];
-  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
-  function voice(t, type, f0, f1, dur, gain, dest) {
-    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g).connect(dest); o.start(t); o.stop(t + dur + .02);
-  }
-  let noiseBuf;
-  function noise(t, dur, gain, hp, dest) {
-    const s = ctx.createBufferSource(); s.buffer = noiseBuf; const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp; const g = ctx.createGain();
-    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(f).connect(g).connect(dest); s.start(t); s.stop(t + dur);
-  }
-  function schedule() {
-    const spb = 60 / BPM / 4;
-    while (nextT < ctx.currentTime + 0.12) {
-      const s = step % 16, bar = Math.floor(step / 16) % 4, t = nextT, out = ctx._bus;
-      const kick = STYLE === 'electro' ? s % 4 === 0 : [0, 6, 8, 11].includes(s);
-      if (kick) voice(t, 'sine', 150, 42, .32, .9, out);
-      if (s === 4 || s === 12) noise(t, .18, .45, 1500, out);
-      if (s % 2 === 0 || STYLE === 'trap') noise(t, .04, s % 4 === 2 ? .16 : .08, 7000, out);
-      if (s === 0 || s === 8 || (STYLE === 'electro' && s % 4 === 2)) voice(t, STYLE === 'electro' ? 'sawtooth' : 'triangle', mtof(ROOTS[bar] - 12), 0, spb * 3.5, .28, out);
-      if (s === 0) [0, 3, 7, 10].forEach((iv, k) => voice(t + k * .01, 'triangle', mtof(ROOTS[bar] + 12 + (STYLE === 'bounce' ? [0, 4, 7, 11][k] : iv)), 0, spb * 14, .045, out));
-      if (STYLE === 'bounce' && (s === 3 || s === 10 || s === 14)) voice(t, 'square', mtof(ROOTS[bar] + 24 + [7, 4, 12][[3, 10, 14].indexOf(s)]), 0, .12, .035, out);
-      nextT += spb; step++;
-    }
-  }
-  function startAudio() {
-    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-    if (!analyser) {
-      analyser = ctx.createAnalyser(); analyser.fftSize = 128; data = new Uint8Array(analyser.frequencyBinCount);
-      const master = ctx.createGain(); master.gain.value = .55; master.connect(analyser).connect(ctx.destination);
-      const comp = ctx.createDynamicsCompressor(); comp.connect(master); ctx._bus = comp;
-      noiseBuf = ctx.createBuffer(1, ctx.sampleRate * .5, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      if (A.preview_url) { const el = new Audio(A.preview_url); el.crossOrigin = 'anonymous'; el.loop = true; ctx._el = el; ctx.createMediaElementSource(el).connect(master); }
-    }
-    ctx.resume(); playing = true;
-    if (ctx._el) ctx._el.play(); else { nextT = ctx.currentTime + .05; step = 0; timer = setInterval(schedule, 25); }
-  }
-  function stopAudio() { playing = false; clearInterval(timer); if (ctx && ctx._el) ctx._el.pause(); }
-  document.querySelectorAll('[data-act=preview]').forEach(b => b.addEventListener('click', e => {
-    e.stopPropagation();
-    if (playing) { stopAudio(); b.classList.remove('on'); b.querySelector('span').firstChild.textContent = b.classList.contains('g-audio') ? 'Preview beat' : 'Play preview'; }
-    else { startAudio(); b.classList.add('on'); b.querySelector('span').firstChild.textContent = 'Pause preview'; }
-  }));
+  /* ---------- audio: the creator's own uploaded track (round 4) ----------
+     app.js owns the <audio> element + controls (CP.music); on the first tap we route it through an analyser so the
+     visualizer reads the real track. No music = no visualizer at all (the hero shows the trade's motion accent instead). */
+  const BPM = (cfg.audio || {}).bpm || 90;
+  let ctx, analyser, data, playing = false;
+  document.addEventListener('cp:music', e => {
+    const M = CP.music; if (!M) return;
+    if (e.detail && e.detail.playing) {
+      try {
+        ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+        if (!analyser) { analyser = ctx.createAnalyser(); analyser.fftSize = 128; analyser.smoothingTimeConstant = .72; data = new Uint8Array(analyser.frequencyBinCount);
+          ctx.createMediaElementSource(M.el).connect(analyser); analyser.connect(ctx.destination); }
+        ctx.resume();
+      } catch (err) { /* analyser unavailable: audio still plays, bars fall back to the idle groove */ }
+      playing = true;
+    } else playing = false;
+  });
 
-  /* simulated groove when no audio is playing (keeps the page breathing; also used for stills) */
-  function simLevels(t) {
+  /* idle groove for the bars while the track is paused (only exists when a track was uploaded); also used for stills */
+  function simLevels(t, amt) {
     const beat = (t / 1000) * BPM / 60; const ph = beat % 1; const kickEnv = Math.exp(-ph * 5.5);
     const out = new Array(48);
-    for (let i = 0; i < 48; i++) { const f = i / 48; out[i] = Math.max(0, Math.min(1, (1 - f) * kickEnv * .9 + .25 * Math.abs(Math.sin(t / 260 + i * 0.7)) * (0.4 + f * .6) + .12 * Math.sin(t / 900 + i))); }
-    return { bars: out, low: kickEnv };
+    for (let i = 0; i < 48; i++) { const f = i / 48; out[i] = amt * Math.max(0, Math.min(1, (1 - f) * kickEnv * .9 + .25 * Math.abs(Math.sin(t / 260 + i * 0.7)) * (0.4 + f * .6) + .12 * Math.sin(t / 900 + i))); }
+    return { bars: out, low: kickEnv * amt };
   }
+  const HAS_TRACK = !!CP.music;
   function levels(t) {
     if (playing && analyser) { analyser.getByteFrequencyData(data); const bars = [...data].slice(0, 48).map(v => v / 255); const low = (bars[1] + bars[2] + bars[3]) / 3; return { bars, low }; }
-    return simLevels(STATIC ? 640 : t);
+    if (HAS_TRACK) return simLevels(STATIC ? 640 : t, STATIC ? 1 : .35);
+    return { bars: [], low: .06 + .05 * Math.sin(t / 1700) }; // no music: slow breathing only, no beat
   }
 
   /* ---------- visualizer ---------- */
@@ -129,7 +108,7 @@
   function sizeFx() { if (!fx) return; fx.width = innerWidth * DPR; fx.height = innerHeight * DPR; }
   sizeFx(); addEventListener('resize', sizeFx);
   const heart = (c, x, y, s) => { c.beginPath(); c.moveTo(x, y + s * .3); c.bezierCurveTo(x, y, x - s * .5, y, x - s * .5, y + s * .3); c.bezierCurveTo(x - s * .5, y + s * .6, x, y + s * .8, x, y + s); c.bezierCurveTo(x, y + s * .8, x + s * .5, y + s * .6, x + s * .5, y + s * .3); c.bezierCurveTo(x + s * .5, y, x, y, x, y + s * .3); c.fill(); };
-  const N = sig === 'hearts' ? 16 : 18;
+  const N = sig === 'none' ? 0 : sig === 'hearts' ? 16 : 18; // portfolio pages: no floating particles
   for (let i = 0; i < N; i++) parts.push({ x: Math.random(), y: Math.random(), s: (sig === 'hearts' ? 8 + Math.random() * 12 : 1 + Math.random() * 2) * DPR, v: .0004 + Math.random() * .0008, p: Math.random() * 6.28, c: [pal.acc, cfg.theme.wordmark.stroke || pal.acc2, pal.text][i % 3] });
   /* extra effects requested in the intake ("add falling hearts", "make it rainy") */
   const EFFECTS = cfg.effects || []; const SPEED = cfg.motion === 'high' ? 1.8 : cfg.motion === 'low' ? .5 : 1;
@@ -173,7 +152,7 @@
       const s = el.classList.contains('bg') ? 1 + L.low * .04 : el.classList.contains('fg') ? 1.03 + L.low * .025 : 1.02;
       el.style.transform = `translate3d(${(tx * 22 * d).toFixed(2)}px, ${(ty * 16 * d + sy * d * .35).toFixed(2)}px, 0) rotateY(${(tx * 5 * d).toFixed(2)}deg) rotateX(${(-ty * 4 * d).toFixed(2)}deg) scale(${s.toFixed(3)})`;
     });
-    if (wm) wm.style.transform = `${sig === 'hearts' ? 'rotate(-4deg) ' : ''}translate3d(${(tx * -6).toFixed(2)}px, ${(sy * -0.12).toFixed(1)}px, 0) scale(${(1 + L.low * .035).toFixed(3)})`;
+    if (wm) wm.style.transform = `${sig === 'hearts' ? 'rotate(-4deg) ' : ''}translate3d(${(tx * -6).toFixed(2)}px, ${(sy * -0.03).toFixed(1)}px, 0) scale(${(1 + L.low * .035).toFixed(3)})`;
     drawViz(L); drawFx(t, L);
     if (live) requestAnimationFrame(frame);
   }

@@ -436,3 +436,25 @@ html[data-theme=light]{color-scheme:light}
 [data-theme=light][data-motion="1"] .bg-art{filter:blur(56px) saturate(1.1) brightness(1.15);opacity:.35}
 [data-theme=light][data-motion="1"] .bg-mesh{mix-blend-mode:multiply;opacity:.18}
 [data-theme=light] .sample-pill{background:rgba(255,255,255,.75);color:var(--text)}
+
+/* ---------- round 4: tip saying, music dock, accent strip ---------- */
+.tip-chip .tc-t{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:380px){.tip-chip .tc-t{max-width:112px}}
+.ts-h b small.ts-to{display:block;font:600 12px/1.3 var(--font-body);color:var(--muted);margin-top:3px}
+.accent-strip{display:block;width:78%;max-width:420px;height:40px;margin:-4px auto 12px}
+[data-tier="gold"]:not([data-layout="streamer"]) .accent-strip{display:none}
+.mdock{display:flex;align-items:center;gap:10px;margin:6px 0 14px;padding:10px 12px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+.mdock .md-t{flex:1;min-width:0}.mdock .md-t b{display:block;font:700 14px/1.25 var(--font-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mdock .md-t small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.md-bar{height:3px;border-radius:3px;background:var(--line);margin-top:7px;overflow:hidden}.md-bar i{display:block;height:100%;width:0;background:var(--acc)}
+.md-play{flex:0 0 42px;height:42px;border-radius:50%;border:0;background:var(--acc);color:var(--on-acc,#fff);display:grid;place-items:center;cursor:pointer}
+.md-play svg{width:20px;height:20px;fill:currentColor}.md-play .pa,.mdock.playing .md-play .pl{display:none}.mdock.playing .md-play .pa{display:block}
+.md-mute{flex:0 0 34px;height:34px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--text);display:grid;place-items:center;cursor:pointer}
+.md-mute svg{width:18px;height:18px;fill:currentColor}.md-mute.muted .w{display:none}.md-mute.muted{opacity:.55}
+.md-vol{flex:0 0 72px;width:72px;accent-color:var(--acc)}
+@media(max-width:360px){.md-vol{display:none}}
+.md-ico{flex:0 0 40px;height:40px;border-radius:12px;display:grid;place-items:center}.md-ico svg{width:22px;height:22px}
+.md-load{flex:0 0 auto;width:auto;padding:0 16px}
+.md-embed{margin:-6px 0 14px}.md-embed iframe{width:100%;border:0;border-radius:14px;display:block}
+.md-slot{padding:22px 16px;border-radius:14px;border:1px dashed var(--line);text-align:center;font-weight:700;font-size:13.5px}.md-slot small{display:block;font-weight:500;color:var(--muted);margin-top:4px}
+[data-theme=light] .mdock{background:#fff}

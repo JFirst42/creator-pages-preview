@@ -7,7 +7,7 @@
   /* Creator hub live preview (?hub=1): the hub editor writes overrides to localStorage; only whitelisted content keys apply.
      Tier features (cfg.features) can never be changed from here. */
   const HUB = qs.has('hub');
-  const HUB_KEYS = ['title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture'];
+  const HUB_KEYS = ['title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture', 'tip_saying', 'music', 'accent'];
   if (HUB) { try { const o = JSON.parse(localStorage.getItem('cp-hub-' + (cfg.hub_key || cfg.slug)) || 'null'); if (o) HUB_KEYS.forEach(k => { if (o[k] !== undefined && o[k] !== null) cfg[k] = o[k]; }); } catch (e) {} }
   const EXPAND = qs.has('expand');          // render every tab panel stacked (for review/screenshots)
   const STATIC = qs.has('static');          // freeze motion (for still screenshots)
@@ -22,6 +22,27 @@
   if (cfg.theme_mode === 'light') root.dataset.theme = 'light';
   if (cfg.vertical) root.dataset.vertical = cfg.vertical;
   const GOLD = !!F.cinematicHero;
+  /* ---------- round 4: music (none | upload | link), theme motion accent, custom tip saying ----------
+     No music = no sound bars anywhere: the hero gets a motion accent that fits the trade instead (accents.js). */
+  if (HUB && cfg.music && cfg.music.mode === 'upload' && cfg.music.local) { try { const d = localStorage.getItem('cp-hub-audio-' + (cfg.hub_key || cfg.slug)); if (d) cfg.music.src = d; } catch (e) {} }
+  const MPROV = [['spotify', 'Spotify', /open\.spotify\.com\/(intl-[a-z]+\/)?(track|album|playlist|artist|episode)\//i], ['apple', 'Apple Music', /music\.apple\.com\//i], ['soundcloud', 'SoundCloud', /soundcloud\.com\//i],
+    ['youtube', 'YouTube', /(youtube\.com\/(watch|shorts|embed)|youtu\.be\/|music\.youtube\.com\/)/i], ['audiomack', 'Audiomack', /audiomack\.com\//i]];
+  const mprov = u => /^https:\/\/[^\s]+$/.test(u || '') ? (MPROV.find(p => p[2].test(u)) || null) : null;
+  const MUSIC = (() => { const m = cfg.music || {};
+    if (m.mode === 'upload' && F.musicUpload && m.src) return { mode: 'upload', src: m.src, title: m.title || 'My track', start: Math.max(0, +m.start || 0) };
+    const p = mprov(m.url);
+    if ((m.mode === 'link' || m.mode === 'upload') && F.musicLink && p) return { mode: 'link', url: m.url, prov: p, title: m.title || '' };
+    return { mode: 'none' }; })();
+  const HAS_AUDIO = MUSIC.mode === 'upload';
+  const ACC = cfg.accents || { default: null, options: [] };
+  const ACCENT = (HAS_AUDIO && GOLD) ? null : F.accentPicker ? (cfg.accent === 'none' ? null : (ACC.options || []).includes(cfg.accent) ? cfg.accent : ACC.default) : F.accentDefault ? ACC.default : null;
+  const LEET = { 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', '@': 'a', $: 's' };
+  function cleanSaying(v) { // same rules as generator/saying.py: 40 chars, emoji OK, no links/handles, small profanity list
+    const s = String(v || '').replace(/\s+/g, ' ').trim(); if (!s) return '';
+    if (/(https?:\/\/|www\.|@|\b[\w-]+\.(com|net|org|io|co|me|ly|gg|app|link|xyz|shop|store|tv|fm)\b)/i.test(s)) return '';
+    if (s.split(' ').some(w => { const n = w.toLowerCase().replace(/[013457@$]/g, c => LEET[c]).replace(/[^a-z]/g, ''); return /^(fuck|shit|bitch|cunt|dick|pussy|asshole|nigger|nigga|fag|faggot|slut|whore|retard|cock)s?$/.test(n) || /(fuck|shit|cunt|nigg)/.test(n); })) return '';
+    return [...s].slice(0, 40).join('').trim(); }
+  const TIP_SAYING = F.tipSaying ? cleanSaying(cfg.tip_saying) : '';
   const T = cfg.theme || {}; const WM = T.wordmark || {};
   if (GOLD && WM.font) { root.style.setProperty('--wm-font', `'${WM.font}'`); root.style.setProperty('--wm-fill', WM.fill); root.style.setProperty('--wm-stroke', WM.stroke); root.style.setProperty('--wm-depth', WM.depth); root.style.setProperty('--wm-weight', WM.weight || 400); root.style.setProperty('--wm-case', WM.case || 'none'); root.style.setProperty('--wm-track', WM.tracking || '0'); }
   const isLive = F.liveTakeover && cfg.layout === 'streamer' && cfg.live && cfg.live.is_live;
@@ -32,7 +53,7 @@
     try { (window.dataLayer = window.dataLayer || []).push(d); document.dispatchEvent(new CustomEvent('cp:track', { detail: d }));
       const k = 'cp-stats-' + (cfg.hub_key || cfg.slug), st = JSON.parse(localStorage.getItem(k) || '{}'), key = ev + (data && (data.method || data.id || data.platform) ? ':' + (data.method || data.id || data.platform) : '');
       st[key] = (st[key] || 0) + 1; localStorage.setItem(k, JSON.stringify(st)); } catch (e) {} };
-  window.CP = { cfg, F, STATIC, EXPAND, qs, track };
+  window.CP = { cfg, F, STATIC, EXPAND, qs, track, MUSIC, ACCENT, cleanSaying };
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const icon = (k, fill) => {
@@ -111,13 +132,16 @@
     return `<div class="hcta${reveal}" data-feature="${esc(FEATURE)}">${main}${chips}</div>`;
   }
 
-  function audioMini(what) { return `<button class="g-audio" data-act="preview" aria-label="Play beat preview"><b></b><span>Preview ${esc(what || 'beat')}</span><em>${esc((cfg.audio || {}).label || 'placeholder')}</em></button>`; }
+  function audioMini() { return HAS_AUDIO ? `<button class="g-audio" data-act="music" aria-label="Play ${esc(MUSIC.title)}"><b></b><span>Play</span><em>${esc(MUSIC.title)}</em></button>` : ''; }
+  // Gold hero bottom strip: real-audio visualizer only when an uploaded track exists; otherwise the trade's motion accent (or nothing)
+  const gStrip = () => HAS_AUDIO ? '<canvas class="g-viz" aria-hidden="true"></canvas>' : ACCENT ? `<canvas class="g-accent" data-accent="${esc(ACCENT)}" aria-hidden="true"></canvas>` : '';
+  const gMode = HAS_AUDIO ? 'has-viz' : ACCENT ? 'has-accent' : 'no-strip';
   function goldHero() {
     const L = cfg.layers || {};
     const rs = releaseState();
     if (cfg.layout === 'streamer') {
       const chat = (cfg.live_chat || []).slice(0, 3).map(m => `<p><b>${esc(m[0])}</b> ${esc(m[1])}</p>`).join('');
-      return `<section class="g-hero streamer">
+      return `<section class="g-hero streamer ${gMode}">
         <div class="g-frame"><div class="feed"></div><div class="scan"></div>
           <div class="chip">${isLive ? `<span>● LIVE</span>${cfg.live.viewers ? `<span>${esc(cfg.live.viewers)} watching</span>` : ''}` : '<span>OFFLINE</span>'}</div>
           <div class="chat">${chat}</div><span class="embedlbl">Player embed slot</span></div>
@@ -125,11 +149,12 @@
         <div class="g-copy"><div class="g-kicker"><i></i>${isLive ? esc(cfg.live.title || 'Live now') : 'Streamer'}<i></i></div>
           ${wordmark(cfg.title)}
           ${cfg.tagline ? `<p class="g-sub">${esc(cfg.tagline)}</p>` : ''}
-          <div class="g-actions">${heroCTA()}</div>${audioMini('intro theme')}</div>
-        <canvas class="g-viz"></canvas></section>`;
+          <div class="g-actions">${heroCTA()}</div>${audioMini()}</div>
+        ${gStrip()}</section>`;
     }
     const state = PORT ? esc(cfg.availability || 'Books open') : rs && F.countdown ? (rs.future ? `Drops <span data-rel-short></span>` : 'Out now') : (cfg.kind_label || '');
-    return `<section class="g-hero"><div class="g-stage">
+    const cta = heroCTA();
+    return `<section class="g-hero ${gMode}"><div class="g-stage">
         <div class="g-layer bg" data-depth="-0.5"></div><div class="g-halo"></div>
         <div class="g-layer mid" data-depth="0.25"><img src="${esc(L.mid || cfg.cover || 'cover.jpg')}" alt=""></div>
         ${L.fg ? `<div class="g-layer fg" data-depth="0.9"><img src="${esc(L.fg)}" alt=""></div>` : ''}
@@ -139,9 +164,30 @@
       <div class="g-copy"><div class="g-kicker"><i></i>${esc(cfg.artist)}${cfg.feat ? ' · feat. ' + esc(cfg.feat) : ''}<i></i></div>
         ${wordmark(cfg.title)}
         <p class="g-sub">${state}${cfg.kind_label ? ' · ' + esc(cfg.kind_label) : ''}</p>
-        <div class="g-actions">${heroCTA() || (PORT ? '' : `<button class="g-play" data-act="preview"><b></b><span>Play preview<small>${esc((cfg.audio || {}).label || 'placeholder beat')}</small></span></button>`)}</div>
-        ${HERO_LINKS.length && !PORT ? audioMini() : ''}</div>
-      <canvas class="g-viz"></canvas><div class="g-scrollhint">Scroll</div></section>`;
+        <div class="g-actions">${cta || (HAS_AUDIO ? `<button class="g-play" data-act="music"><b></b><span>Play<small>${esc(MUSIC.title)}</small></span></button>` : '')}</div>
+        ${cta ? audioMini() : ''}</div>
+      ${gStrip()}<div class="g-scrollhint">Scroll</div></section>`;
+  }
+  /* music dock: upload = tap-to-play 30s loop with volume/mute; link = official embed, loaded only after a tap */
+  function musicDock() {
+    if (MUSIC.mode === 'none') return '';
+    const I = MUSIC.mode === 'link' ? (window.ICONS || {})[MUSIC.prov[0] === 'apple' ? 'apple_music' : MUSIC.prov[0]] : null;
+    const spk = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    if (MUSIC.mode === 'upload') return `<div class="mdock${reveal}" data-mode="upload"><button class="md-play" data-act="music" aria-label="Play ${esc(MUSIC.title)}"><svg viewBox="0 0 24 24" class="pl"><path d="M8 5v14l11-7z"/></svg><svg viewBox="0 0 24 24" class="pa"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
+      <div class="md-t"><b>${esc(MUSIC.title)}</b><small>${GOLD ? 'Visualizer follows the track · ' : ''}30s loop · tap to play</small><div class="md-bar"><i></i></div></div>
+      <button class="md-mute" data-act="mute" aria-label="Mute">${spk}</button><input class="md-vol" type="range" min="0" max="1" step="0.05" value="0.8" aria-label="Volume"></div>`;
+    const P = MUSIC.prov;
+    return `<div class="mdock${reveal}" data-mode="link"><span class="md-ico" style="background:${I ? '#' + I.hex : 'var(--acc)'}">${I ? `<svg viewBox="0 0 24 24" fill="#fff"><path d="${I.path}"/></svg>` : '♪'}</span>
+      <div class="md-t"><b>${esc(MUSIC.title || 'Listen')}</b><small>${esc(P[1])} · official player</small></div><button class="btn sm md-load" data-act="music-embed">Play</button></div><div class="md-embed" hidden></div>`;
+  }
+  function embedSrc(u, p) {
+    try { const x = new URL(u);
+      if (p === 'spotify') return [`https://open.spotify.com/embed${x.pathname.replace(/^\/intl-[a-z]+/, '')}?utm_source=generator`, 152];
+      if (p === 'apple') return [`https://embed.music.apple.com${x.pathname}${x.search}`, 175];
+      if (p === 'soundcloud') return [`https://w.soundcloud.com/player/?url=${encodeURIComponent(u)}&visual=false&auto_play=true`, 166];
+      if (p === 'youtube') { const id = x.hostname.includes('youtu.be') ? x.pathname.slice(1) : x.searchParams.get('v') || x.pathname.split('/').pop(); return [`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1`, 210]; }
+      if (p === 'audiomack') { const [a, kind, slug] = x.pathname.split('/').filter(Boolean); return [`https://audiomack.com/embed/${kind}/${a}/${slug}`, 252]; }
+    } catch (e) {} return [null, 0];
   }
   function hero() {
     if (GOLD) return goldHero();
@@ -159,7 +205,7 @@
     } else if (!streamer && cfg.kind_label) {
       status = `<div class="status soft">New ${esc(cfg.kind_label.toLowerCase())}</div>`;
     }
-    const viz = F.visualizer ? `<div class="viz">${Array.from({ length: 28 }, (_, i) => `<i style="animation-delay:${(-(i * 137) % 1100) / 1000}s;animation-duration:${0.7 + ((i * 53) % 60) / 100}s"></i>`).join('')}</div>` : '';
+    const viz = ACCENT ? `<canvas class="accent-strip" data-accent="${esc(ACCENT)}" aria-hidden="true"></canvas>` : '';
     return `<header class="hero">
       <div class="cover-wrap${reveal}">${streamer ? '<div class="ring"></div>' : ''}
         <div class="cover ${F.microInteractions && streamer ? 'tilt' : ''}"><img src="${esc(cfg.cover || 'cover.jpg')}" alt="${esc(cfg.title)} artwork"><div class="glare"></div></div>
@@ -310,7 +356,7 @@
     stripe: { name: 'Stripe link', icon: 'stripe', show: h => h.replace(/^https?:\/\//, ''), url: h => /^https:\/\//.test(h) ? h : `https://buy.stripe.com/${encodeURIComponent(h)}` }
   };
   const tipList = () => (cfg.tip_methods || []).filter(m => TIP[m.type] && m.handle && m.on !== false);
-  function tipChip() { return F.tipButton && tipList().length ? `<button class="tip-chip" data-act="tip" aria-label="Tip ${esc(cfg.artist || cfg.title)}"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-9.3-8.6C1.1 9.3 2.8 5.5 6.4 5.5c2.1 0 3.6 1.4 4.3 2.6h2.6c.7-1.2 2.2-2.6 4.3-2.6 3.6 0 5.3 3.8 3.7 6.9C19 16.6 12 21 12 21z"/></svg>Tip</button>` : ''; }
+  function tipChip() { return F.tipButton && tipList().length ? `<button class="tip-chip" data-act="tip" aria-label="Tip ${esc(cfg.artist || cfg.title)}"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-9.3-8.6C1.1 9.3 2.8 5.5 6.4 5.5c2.1 0 3.6 1.4 4.3 2.6h2.6c.7-1.2 2.2-2.6 4.3-2.6 3.6 0 5.3 3.8 3.7 6.9C19 16.6 12 21 12 21z"/></svg><span class="tc-t">${esc(TIP_SAYING || 'Tip')}</span></button>` : ''; }
   function tipRows() {
     return tipList().map(m => { const T2 = TIP[m.type], I = (window.ICONS || {})[T2.icon]; const bg = I ? '#' + I.hex : 'var(--acc)';
       const ico = I ? icon(T2.icon, '#fff') : `<b>${esc(T2.name[0])}</b>`;
@@ -620,7 +666,7 @@
     <div class="g-intro"><div>${wordmark(cfg.title, 'aria-hidden="true"')}<small>${esc(T.intro_line || 'loading the world')}</small></div></div>` : '';
   if (goldOuter) document.body.insertAdjacentHTML('afterbegin', goldOuter);
   if (cfg.demo_banner) document.body.insertAdjacentHTML('afterbegin', `<div class="demo-banner">${esc(cfg.demo_banner)}${HUB ? ' · hub preview' : ''}</div>`);
-  app.innerHTML = goldChrome + topbar() + hero() + featured() + links() + socials() + countdownCard() + tabbed() + qrCard() + analytics() + footer();
+  app.innerHTML = goldChrome + topbar() + hero() + musicDock() + featured() + links() + socials() + countdownCard() + tabbed() + qrCard() + analytics() + footer();
   // Bronze: QR sits right after links (it's the only extra). Above order already handles that.
 
   if (qs.get('scroll')) requestAnimationFrame(() => scrollTo(0, +qs.get('scroll')));
@@ -684,10 +730,39 @@
     if (act === 'share' || act === 'story') makeStory();
   });
 
+  /* ---------- music player (uploaded track): 30s loop from cfg.music.start, tap to play, volume + mute; never autoplays ---------- */
+  const MP = HAS_AUDIO ? (() => {
+    const el = new Audio(); el.preload = 'none'; el.src = MUSIC.src; el.volume = .8; let S = MUSIC.start; const LEN = 30;
+    el.addEventListener('loadedmetadata', () => { if (el.duration && S > el.duration - 1) S = 0; if (el.currentTime < S) el.currentTime = S; });
+    el.addEventListener('timeupdate', () => { if (el.currentTime >= S + LEN || el.currentTime < S - .5) el.currentTime = S; const p = Math.max(0, Math.min(1, (el.currentTime - S) / LEN)); document.querySelectorAll('.md-bar i').forEach(i => i.style.width = (p * 100).toFixed(1) + '%'); });
+    el.addEventListener('ended', () => { el.currentTime = S; el.play().catch(() => {}); });
+    const api = { el, playing: false,
+      set(on) { api.playing = on; if (on) { el.play().catch(() => { api.playing = false; ui(); }); } else el.pause(); ui(); document.dispatchEvent(new CustomEvent('cp:music', { detail: { playing: on } })); track(on ? 'music_play' : 'music_pause'); },
+      toggle() { api.set(!api.playing); } };
+    function ui() { document.querySelectorAll('[data-act=music]').forEach(b => { b.classList.toggle('on', api.playing); const sp = b.querySelector('span'); if (sp && sp.firstChild) sp.firstChild.textContent = api.playing ? 'Pause' : 'Play'; });
+      document.querySelectorAll('.mdock').forEach(d => d.classList.toggle('playing', api.playing)); document.querySelectorAll('.md-mute').forEach(b => b.classList.toggle('muted', el.muted)); }
+    document.addEventListener('visibilitychange', () => { if (document.hidden && api.playing) api.set(false); });
+    return api; })() : null;
+  window.CP.music = MP;
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act=music],[data-act=mute],[data-act=music-embed]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    if (b.dataset.act === 'music' && MP) MP.toggle();
+    if (b.dataset.act === 'mute' && MP) { MP.el.muted = !MP.el.muted; b.classList.toggle('muted', MP.el.muted); b.setAttribute('aria-label', MP.el.muted ? 'Unmute' : 'Mute'); }
+    if (b.dataset.act === 'music-embed') {
+      const box = b.closest('.mdock').nextElementSibling; if (!box) return; const open = box.hidden; box.hidden = !open; b.textContent = open ? 'Hide' : 'Play';
+      if (open && !box.firstChild) { const [src, h] = embedSrc(MUSIC.url, MUSIC.prov[0]);
+        box.innerHTML = /PLACEHOLDER/i.test(MUSIC.url) || !src ? `<div class="md-slot">${esc(MUSIC.prov[1])} official player loads here.<small>Placeholder link in this demo, so no player is loaded.</small></div>`
+          : `<iframe src="${esc(src)}" height="${h}" loading="lazy" allow="autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture" title="${esc(MUSIC.prov[1])} player"></iframe>`; }
+      track('music_embed', { provider: MUSIC.prov[0] });
+    }
+  }, true);
+  document.addEventListener('input', e => { if (e.target.classList.contains('md-vol') && MP) { MP.el.volume = +e.target.value; if (MP.el.muted && +e.target.value > 0) { MP.el.muted = false; document.querySelectorAll('.md-mute').forEach(x => x.classList.remove('muted')); } } });
+
   /* ---------- tip sheet ---------- */
   function openTips() {
     let sh = document.querySelector('.tip-sheet');
-    if (!sh) { document.body.insertAdjacentHTML('beforeend', `<div class="tip-sheet" role="dialog" aria-modal="true" aria-label="Tip"><div class="ts-back" data-act="tip-close"></div><div class="ts-card"><div class="ts-h"><b>Tip ${esc(cfg.artist || cfg.title)}</b><button class="icon-btn" data-act="tip-close" aria-label="Close">✕</button></div><p class="fine">Pick an app. It opens their own page; nothing is paid here.</p><div class="tip-list">${tipRows()}</div></div></div>`); sh = document.querySelector('.tip-sheet'); }
+    if (!sh) { document.body.insertAdjacentHTML('beforeend', `<div class="tip-sheet" role="dialog" aria-modal="true" aria-label="Tip"><div class="ts-back" data-act="tip-close"></div><div class="ts-card"><div class="ts-h"><b>${TIP_SAYING ? `${esc(TIP_SAYING)}<small class="ts-to">Tip ${esc(cfg.artist || cfg.title)}</small>` : `Tip ${esc(cfg.artist || cfg.title)}`}</b><button class="icon-btn" data-act="tip-close" aria-label="Close">✕</button></div><p class="fine">Pick an app. It opens their own page; nothing is paid here.</p><div class="tip-list">${tipRows()}</div></div></div>`); sh = document.querySelector('.tip-sheet'); }
     requestAnimationFrame(() => sh.classList.add('on')); track('tip_open');
   }
   document.addEventListener('click', e => {

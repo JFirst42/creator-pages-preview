@@ -64,6 +64,8 @@
       <div class="box"><h3>Sections <small>${S.tier === 'gold' ? 'drag to reorder · toggle on/off' : S.tier === 'silver' ? 'preset · a few show/hide toggles' : 'fixed preset'}</small></h3>${sectionsUI(c)}</div>
       <div class="box"><h3>Theme <small>auto-matched to your art</small></h3>${rank(S.tier) >= 1 ? `<div class="colors"><label><input type="color" data-pal="acc" value="${esc((c.palette_override || {}).acc || a.palette.acc)}">Accent</label><label><input type="color" data-pal="acc2" value="${esc((c.palette_override || {}).acc2 || a.palette.acc2)}">Accent 2</label><button class="mini" data-act="palreset">Use art colors</button></div>` : lockBox('silver', 'Palette tweaks are Silver+. Bronze uses the colors from your art.')}</div>
       <div class="box"><h3>Hero background</h3>${f.heroVideoBg ? `<div class="row">${[['art3d', '3D art'], ['video', 'Video loop']].map(([v, l]) => `<label class="sw-row" style="flex:1"><input type="radio" name="herobg" value="${v}" ${(c.hero_bg || 'art3d') === v ? 'checked' : ''}> ${l}</label>`).join('')}</div><p class="fine">Fans can still flip it with the small toggle on the hero.</p>` : lockBox('gold', 'The 3D art / video hero is Gold.')}</div>
+      <div class="box"><h3>Music <small>optional · no music = no sound bars</small></h3>${musicUI(c)}</div>
+      <div class="box"><h3>Hero accent <small>${f.accentPicker ? 'pick one for your trade' : f.accentDefault ? 'default for your trade' : ''}</small></h3>${accentUI(c)}</div>
       <div class="box"><h3>Tip button <small>links out · no payments on the page</small></h3>${f.tipButton ? tipUI(c) : lockBox('silver', 'The Tip button is Silver and Gold.')}</div>
       </div></div>`;
   }
@@ -83,9 +85,50 @@
       <p class="fine" style="margin-top:8px">Only sections that fit a ${esc(a.verticalLabel)} are listed${a.service ? '' : (a.takes_bookings ? ' (bookings on)' : '. Booking appears if you turn on "I take bookings / features"')}.</p>`;
   }
   const TIPM = [['cashapp', 'Cash App', '$cashtag'], ['paypal', 'PayPal.me', 'username'], ['venmo', 'Venmo', '@username'], ['zelle', 'Zelle', 'email or phone (shown + copy)'], ['kofi', 'Ko-fi', 'username'], ['bmc', 'Buy Me a Coffee', 'username'], ['stripe', 'Stripe payment link', 'https://buy.stripe.com/...']];
+  /* round 4: custom tip saying (typed like name; 40 chars, emoji OK, links + profanity filtered: same rules as the page and the intake server) */
+  const LEET = { 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', '@': 'a', $: 's' };
+  function checkSaying(v) {
+    const s = String(v || '').replace(/\s+/g, ' ').trim(); if (!s) return [''];
+    if (/(https?:\/\/|www\.|@|\b[\w-]+\.(com|net|org|io|co|me|ly|gg|app|link|xyz|shop|store|tv|fm)\b)/i.test(s)) return [null, "Links and handles aren't allowed here."];
+    if (s.split(' ').some(w => { const n = w.toLowerCase().replace(/[013457@$]/g, c => LEET[c]).replace(/[^a-z]/g, ''); return /^(fuck|shit|bitch|cunt|dick|pussy|asshole|nigger|nigga|fag|faggot|slut|whore|retard|cock)s?$/.test(n) || /(fuck|shit|cunt|nigg)/.test(n); })) return [null, "That word can't be shown on the page."];
+    if ([...s].length > 40) return [null, 'Keep it to 40 characters.'];
+    return [s]; }
   function tipUI(c) {
-    const m = c.tip_methods || [];
-    return TIPM.map(([t, l, ph]) => { const x = m.find(y => y.type === t); return `<div class="row" style="margin-bottom:6px"><span class="sw"><input type="checkbox" data-tipon="${t}" ${x && x.on !== false ? 'checked' : ''}><i></i></span><b style="flex:0 0 112px;font-size:12.5px">${l}</b><input class="in" data-tiph="${t}" placeholder="${esc(ph)}" value="${esc(x ? x.handle : '')}"></div>`; }).join('') + '<p class="fine">Fans see a small Tip chip that opens these. Clicks are tracked per app.</p>';
+    const m = c.tip_methods || [], a = A(), say = c.tip_saying || '';
+    const sayBox = F().tipSaying ? `<div class="f say"><label for="tipsay">Tip button saying <small><span id="saycount">${[...say].length}</span>/40 · emoji OK</small></label>
+      <input class="in" id="tipsay" data-say maxlength="40" value="${esc(say)}" placeholder="Tip" autocomplete="off">
+      <div class="qp" role="group" aria-label="Quick picks">${(a.tipSayings || []).map(x => `<button type="button" class="qchip${x === say ? ' on' : ''}" data-sayp="${esc(x)}">${esc(x)}</button>`).join('')}</div>
+      <p class="fine" id="saymsg">Shows on the Tip chip and at the top of the tip sheet. No links; a small word filter applies.</p></div>` : '';
+    return sayBox + `<div class="tiprows">${TIPM.map(([t, l, ph]) => { const x = m.find(y => y.type === t); return `<div class="tiprow"><label class="tl"><span class="sw"><input type="checkbox" data-tipon="${t}" ${x && x.on !== false ? 'checked' : ''} aria-label="Show ${esc(l)}"><i></i></span><b>${l}</b></label><input class="in" data-tiph="${t}" placeholder="${esc(ph)}" value="${esc(x ? x.handle : '')}" aria-label="${esc(l)} handle"></div>`; }).join('')}</div>` + '<p class="fine">Fans see a small Tip chip that opens these. Clicks are tracked per app.</p>';
+  }
+  /* round 4: music picker. Silver = link embed; Gold = upload (30s loop, visualizer follows it) or link. Bronze = none. */
+  const MPROV = [['spotify', 'Spotify', /open\.spotify\.com\/(intl-[a-z]+\/)?(track|album|playlist|artist|episode)\//i], ['apple', 'Apple Music', /music\.apple\.com\//i], ['soundcloud', 'SoundCloud', /soundcloud\.com\//i], ['youtube', 'YouTube', /(youtube\.com\/(watch|shorts|embed)|youtu\.be\/|music\.youtube\.com\/)/i], ['audiomack', 'Audiomack', /audiomack\.com\//i]];
+  const mprov = u => /^https:\/\/[^\s]+$/.test(u || '') ? (MPROV.find(p => p[2].test(u)) || null) : null;
+  const AKEY = () => 'cp-hub-audio-' + S.acct;
+  function musicNow(c) { const e = loadEdits() || {}; return e.music || (A().musicByTier || {})[S.tier] || c.music || { mode: 'none' }; }
+  function musicUI(c) {
+    const f = F(); if (!f.musicLink && !f.musicUpload) return lockBox('silver', 'Add music by link on Silver; upload your own track on Gold.');
+    const m = musicNow(c), mode = m.mode === 'upload' && !f.musicUpload ? 'none' : (m.mode || 'none'), p = mprov(m.url);
+    const seg = [['none', 'No music'], ['upload', 'Upload my own'], ['link', 'Use a link']].map(([v, l]) => `<button type="button" data-mmode="${v}" class="${mode === v ? 'on' : ''}" ${v === 'upload' && !f.musicUpload ? 'disabled title="Gold"' : ''}>${l}${v === 'upload' && !f.musicUpload ? ' 🔒' : ''}</button>`).join('');
+    let local = null; try { local = localStorage.getItem(AKEY()) ? 1 : null; } catch (e) {}
+    const body = mode === 'upload' ? `<div class="f"><label>Your audio file <small>mp3 or m4a · we use a 30s loop</small></label><label class="file"><input type="file" id="mfile" accept=".mp3,.m4a,audio/mpeg,audio/mp4,audio/x-m4a"><span>${m.local && local ? esc(m.fname || 'Your upload') + ' · in this browser' : m.src ? 'Current: ' + esc(m.title || m.src) : 'Choose a file'}</span></label></div>
+        <div class="row2"><div class="f"><label>Loop starts at</label><select class="in" data-mstart>${[0, 15, 30, 45, 60, 90].map(v => `<option value="${v}" ${(+m.start || 0) === v ? 'selected' : ''}>${v}s</option>`).join('')}</select></div><div class="f"><label>Track title</label><input class="in" data-mtitle maxlength="60" value="${esc(m.title || '')}" placeholder="Track name"></div></div>
+        <p class="fine">Plays only after a fan taps play (browser rule). Volume + mute on the page. Gold's visualizer follows your track.</p>`
+      : mode === 'link' ? `<div class="f"><label>Music link <small id="mprov">${p ? '✓ ' + p[1] : 'Spotify, Apple Music, SoundCloud, YouTube or Audiomack'}</small></label><input class="in" type="url" data-murl value="${esc(m.url || '')}" placeholder="https://open.spotify.com/track/..."></div>
+        <div class="f"><label>Title on the player <small>optional</small></label><input class="in" data-mtitle maxlength="60" value="${esc(m.title || '')}" placeholder="Track name"></div>
+        <p class="fine">Uses the platform's official player, loaded only when a fan taps Play.${f.musicUpload ? ' Link players can\'t drive the visualizer (cross-origin), so your hero keeps its accent.' : ''}</p>`
+      : `<p class="fine">No music: the page shows no sound bars. Your hero uses the motion accent below instead.</p>`;
+    return `<div class="seg3" role="group" aria-label="Music">${seg}</div>${body}${!f.musicUpload ? lockBox('gold', 'Upload your own track (with a visualizer that follows it) on Gold.') : ''}`;
+  }
+  function accentUI(c) {
+    const f = F(), a = A(), ac = a.accents || { default: null, options: [] }, L = (window.CPAccents || {}).labels || {};
+    const pal = `--acc:${a.palette.acc};--acc2:${a.palette.acc2};--text:#f4eef6`;
+    const card = (id, on, dis) => `<button type="button" class="acard${on ? ' on' : ''}" ${dis ? 'disabled' : `data-acc="${id}"`} style="${pal}">${id === 'none' ? '<span class="anone">None</span>' : `<canvas data-accent="${id}" aria-hidden="true"></canvas>`}<small>${esc(L[id] || id)}</small></button>`;
+    if (!f.accentDefault) return lockBox('silver', 'A motion accent for your trade is Silver; pick from 3+ on Gold.');
+    const m = musicNow(c), up = f.musicUpload && m.mode === 'upload';
+    if (!f.accentPicker) return `<div class="agrid">${card(ac.default, true, true)}</div>${lockBox('gold', 'Pick from ' + ac.options.length + ' accents for your trade (or none) on Gold.')}`;
+    const sel = c.accent || ac.default;
+    return `${up ? '<p class="fine" style="margin-bottom:8px">You uploaded a track, so the hero shows the visualizer. The accent is used if you switch music off.</p>' : ''}<div class="agrid">${[...ac.options, 'none'].map(id => card(id, sel === id)).join('')}</div>`;
   }
   let pvT;
   function save(patch, now) {
@@ -211,6 +254,9 @@
       if (t.dataset.fk) save({ featured: Object.assign({}, c.featured || {}, { [t.dataset.fk]: t.value }) });
       if (t.dataset.li) { const L = JSON.parse(JSON.stringify(c.links || [])); L[+t.dataset.li][t.dataset.k] = t.value; save({ links: L }); }
       if (t.dataset.pal) save({ palette_override: Object.assign({}, c.palette_override || {}, { [t.dataset.pal]: t.value }) });
+      if (t.dataset.say !== undefined) { const [v, err] = checkSaying(t.value); $('#saycount').textContent = [...t.value].length; const msg = $('#saymsg'); msg.textContent = err || 'Shows on the Tip chip and at the top of the tip sheet. No links; a small word filter applies.'; msg.classList.toggle('bad', !!err); t.style.borderColor = err ? '#ff6b6b' : ''; if (v !== null) { save({ tip_saying: v }); $$('[data-sayp]').forEach(b => b.classList.toggle('on', b.dataset.sayp === v)); } return; }
+      if (t.dataset.murl !== undefined) { const p = mprov(t.value); $('#mprov').textContent = p ? '✓ ' + p[1] : (t.value ? 'Not a supported music link' : 'Spotify, Apple Music, SoundCloud, YouTube or Audiomack'); t.style.borderColor = t.value && !p ? '#ff6b6b' : ''; if (p) save({ music: Object.assign({}, musicNow(c), { mode: 'link', url: t.value }) }); return; }
+      if (t.dataset.mtitle !== undefined) { save({ music: Object.assign({}, musicNow(c), { title: t.value.slice(0, 60) }) }); return; }
       if (t.dataset.tiph !== undefined && t.dataset.tiph) { const m = (c.tip_methods || []).filter(x => x.type !== t.dataset.tiph); if (t.value) m.push({ type: t.dataset.tiph, handle: t.value, on: true }); save({ tip_methods: m }); const cb = $(`[data-tipon=${t.dataset.tiph}]`); if (cb) cb.checked = !!t.value; }
     });
     P.addEventListener('change', e => {
@@ -218,6 +264,12 @@
       if (t.dataset.tg) save({ section_toggles: Object.assign({}, c.section_toggles || {}, { [t.dataset.tg]: t.checked }) }, true);
       if (t.dataset.son !== undefined) { const L = c.sections.filter(s => allowedSet().has(s.id)); L[+t.dataset.son].on = t.checked; save({ sections: L }, true); }
       if (t.name === 'herobg') save({ hero_bg: t.value }, true);
+      if (t.dataset.mstart !== undefined) save({ music: Object.assign({}, musicNow(c), { start: +t.value }) }, true);
+      if (t.id === 'mfile' && t.files[0]) { const fl = t.files[0];
+        if (!/\.(mp3|m4a)$/i.test(fl.name) && !/^audio\/(mpeg|mp4|x-m4a|mp3)$/.test(fl.type)) { toast('Use an mp3 or m4a file'); t.value = ''; return; }
+        if (fl.size > 8 * 1024 * 1024) { toast('Max 8 MB. The real upload trims it to a 30s loop.'); t.value = ''; return; }
+        const rd = new FileReader(); rd.onload = () => { try { localStorage.setItem(AKEY(), rd.result); } catch (x) { toast('Too big for this browser-only preview (about 3 MB max here). The real upload trims it on the server.'); return; }
+          save({ music: Object.assign({}, musicNow(c), { mode: 'upload', local: true, fname: fl.name.slice(0, 60), title: musicNow(c).title || fl.name.replace(/\.[^.]+$/, '').slice(0, 60) }) }, true); render(); toast('Track added to the preview (stays in this browser)'); }; rd.readAsDataURL(fl); }
       if (t.dataset.tipon) { const m = (c.tip_methods || []).map(x => x.type === t.dataset.tipon ? Object.assign({}, x, { on: t.checked }) : x); if (t.checked && !m.some(x => x.type === t.dataset.tipon)) { toast('Add a handle to turn this on'); t.checked = false; } save({ tip_methods: m }, true); }
       if (t.dataset.k === 'feature_first') save({ feature_first: t.value }, true);
       if (t.dataset.k === 'tagline') save({ tagline: t.value }, true);
@@ -229,8 +281,14 @@
       if (b.dataset.act === 'addsec') { const id = $('#addsec').value, L = c.sections.filter(s => allowedSet().has(s.id)); L.push({ id, on: true }); save({ sections: L }, true); render(); toast(`${D.sections[id]} added`); }
       if (b.dataset.act === 'addlink') { save({ links: [...(c.links || []), { platform: 'instagram', url: 'https://instagram.com/PLACEHOLDER' }] }, true); render(); }
       if (b.dataset.act === 'rmlink') { const L = [...c.links]; L.splice(+b.dataset.i, 1); save({ links: L }, true); render(); }
+      if (b.dataset.sayp) { $('#tipsay').value = b.dataset.sayp; $('#tipsay').dispatchEvent(new Event('input', { bubbles: true })); }
+      if (b.dataset.mmode) { const m = musicNow(c), base = (A().musicByTier || {})[S.tier] || {}; const nm = Object.assign({}, m, { mode: b.dataset.mmode });
+        if (b.dataset.mmode === 'upload' && !nm.src && !nm.local && base.src) nm.src = base.src;
+        if (b.dataset.mmode === 'upload' && !nm.src && !nm.local) { save({ music: nm }, true); render(); toast('Choose an mp3 or m4a to hear it on the page'); return; }
+        if (b.dataset.mmode === 'link' && !nm.url) nm.url = base.url || ''; save({ music: nm }, true); render(); }
+      if (b.dataset.acc) { save({ accent: b.dataset.acc }, true); $$('.acard').forEach(x => x.classList.toggle('on', x === b)); }
       if (b.dataset.act === 'palreset') { save({ palette_override: null }, true); render(); }
-      if (b.dataset.act === 'reset') { localStorage.removeItem(KEY()); render(); toast('Edits cleared'); }
+      if (b.dataset.act === 'reset') { localStorage.removeItem(KEY()); try { localStorage.removeItem(AKEY()); } catch (x) {} render(); toast('Edits cleared'); }
       if (b.dataset.act === 'csv') csv();
       if (b.dataset.act === 'fancsv') { dl(`${S.acct}-fans-SAMPLE.csv`, [['contact', 'channel', 'joined', 'source'], ...window._fans].map(r => r.map(x => `"${x}"`).join(',')).join('\n')); toast('Fan list CSV downloaded'); }
       if (b.dataset.act === 'whop') toast('Placeholder: opens the creator\'s Whop membership page');
