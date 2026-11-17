@@ -25,11 +25,12 @@
   const show = (cfg.shows || [])[0];
   const isStreamer = cfg.layout === 'streamer';
   const WHAT = [
-    !isStreamer && cfg.title && { id: 'release', label: 'Release', kicker: cfg.kind_label ? `New ${cfg.kind_label.toLowerCase()} · out now` : 'Out now', title: cfg.title, sub: [cfg.artist, cfg.feat && 'ft. ' + cfg.feat].filter(Boolean).join(' '), cta: 'Listen now', hash: 'music', icons: listen.map(l => l.platform) },
+    cfg.layout === 'portfolio' && { id: 'release', label: 'Books open', kicker: (cfg.availability || 'Books open').toUpperCase(), title: cfg.title, sub: (cfg.artist || '').replace(/\s*\(sample\)/, ''), cta: 'Book now', hash: 'book', icons: (cfg.links || []).map(l => l.platform).slice(0, 3) },
+    cfg.layout !== 'portfolio' && !isStreamer && cfg.title && { id: 'release', label: 'Release', kicker: cfg.kind_label ? `New ${cfg.kind_label.toLowerCase()} · out now` : 'Out now', title: cfg.title, sub: [cfg.artist, cfg.feat && 'ft. ' + cfg.feat].filter(Boolean).join(' '), cta: 'Listen now', hash: 'music', icons: listen.map(l => l.platform) },
     cfg.video && { id: 'video', label: 'Latest video', kicker: 'New video', title: (cfg.video.title || cfg.title || '').replace(/\s*\(.*?\)\s*$/, ''), sub: cfg.artist || cfg.title, cta: 'Watch now', hash: 'video', icons: ['youtube'], play: true },
     (isStreamer || cfg.live) && { id: 'live', label: 'Live stream', kicker: cfg.live && cfg.live.is_live ? '● Live now' : 'Next stream', title: cfg.title, sub: cfg.live && cfg.live.is_live ? (cfg.live.title || 'Live now') : (cfg.next_stream_label || 'See the schedule'), cta: 'Watch live', hash: 'live', icons: (cfg.links || []).map(l => l.platform).filter(p => ['twitch', 'kick', 'youtube'].includes(p)), live: true },
     show && { id: 'show', label: 'Show date', kicker: new Date(show.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase(), title: show.city, sub: show.venue || '', cta: show.cta || 'Get tickets', hash: 'shows', icons: [] },
-    { id: 'page', label: 'Whole page', kicker: 'All my links', title: cfg.artist || cfg.title, sub: isStreamer ? (cfg.tagline || 'Streams · clips · community') : `Music · video · merch · shows`, cta: 'Tap the link', hash: '', icons: [...new Set((cfg.links || []).concat(cfg.socials || []).map(l => l.platform))].slice(0, 6) }
+    { id: 'page', label: 'Whole page', kicker: 'All my links', title: cfg.artist || cfg.title, sub: isStreamer ? (cfg.tagline || 'Streams · clips · community') : cfg.layout === 'portfolio' ? 'Work · services · booking' : `Music · video · merch · shows`, cta: 'Tap the link', hash: '', icons: [...new Set((cfg.links || []).concat(cfg.socials || []).map(l => l.platform))].slice(0, 6) }
   ].filter(Boolean);
   const HOW = [
     { id: 'story', label: 'Story', w: 1080, h: 1920, note: '9:16 · IG / FB / TikTok story' },

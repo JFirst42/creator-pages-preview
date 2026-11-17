@@ -1,6 +1,6 @@
 /* Preview-only tier switcher */
 :root{--tier-switch-h:60px}
-.tier-switcher{position:fixed;left:0;right:0;bottom:0;z-index:200;display:flex;justify-content:center;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(8,6,8,0),rgba(8,6,8,.88) 40%);pointer-events:none;font-family:Outfit,system-ui,sans-serif}
+.tier-switcher{position:fixed;left:0;right:0;bottom:0;z-index:200;display:flex;flex-direction:column;align-items:center;gap:5px;justify-content:center;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(8,6,8,0),rgba(8,6,8,.88) 40%);pointer-events:none;font-family:Outfit,system-ui,sans-serif}
 .tier-switcher-seg{pointer-events:auto;display:flex;width:min(480px,100%);background:rgba(18,14,16,.94);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:4px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 10px 32px rgba(0,0,0,.45)}
 .tier-switcher-seg a{flex:1 1 0;text-align:center;text-decoration:none;color:#cfc6ca;font:700 11.5px/1.15 Outfit,system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;padding:10px 4px;border-radius:999px;-webkit-tap-highlight-color:transparent;white-space:nowrap}
 .tier-switcher-seg a.tier-switcher-seg-cmp{flex:.9 1 0;color:#ffd23f;border-left:1px solid rgba(255,255,255,.12);border-radius:0 999px 999px 0}
@@ -9,5 +9,7 @@
 .tier-switcher-seg a[data-tier=silver][aria-current=page]{background:linear-gradient(135deg,#fff,#a9b0bb 55%,#e9edf2)}
 .tier-switcher-seg a[data-tier=gold][aria-current=page]{background:linear-gradient(135deg,#fff1b8,#d4a537 50%,#fbe08a)}
 .tier-switcher-seg a.tier-switcher-seg-cmp[aria-current=page]{background:#ffd23f;color:#1a1208;border-radius:999px}
+.tier-switcher-seg.vrow{width:min(330px,100%);padding:3px}.tier-switcher-seg.vrow a{padding:6px 4px;font-size:10.5px}
+.tier-switcher-seg.vrow a[aria-current=page]{background:#f4eef1;color:#1a1208}
 body.has-tier-switcher{padding-bottom:calc(var(--tier-switch-h,60px) + 30px)!important}
 body.has-tier-switcher .demo-banner,body.has-tier-switcher .banner{bottom:var(--tier-switch-h,60px);padding-bottom:6px;z-index:199}
