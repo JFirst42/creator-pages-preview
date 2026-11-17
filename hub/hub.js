@@ -62,6 +62,7 @@
       ${f.hubAdvanced ? `<div class="modeseg" role="group" aria-label="Editor mode"><button data-mode="simple" class="${simple ? 'on' : ''}"><b>Simple</b><small>Look, style, photos</small></button><button data-mode="advanced" class="${adv ? 'on' : ''}"><b>Advanced</b><small>Fonts, colors, cards, order, blocks</small></button></div>` : ''}
       <div class="box"><h3>Look <small>${f.looks ? 'how your whole page is dressed' : 'Gold option'}</small></h3>${lookUI(c)}</div>
       ${f.looks && lookNow(c) === 'studio' ? `<div class="box"><h3>Style <small>${esc(A().verticalLabel)} presets</small></h3>${presetUI(c)}</div>` : ''}
+      ${f.looks && lookNow(c) === 'pro' && ST().pro ? `<div class="box"><h3>Template &amp; motion <small>pick one of each</small></h3>${proUI(c)}</div>` : ''}
       ${f.looks ? `<div class="box"><h3>Photos <small>tap a slot to swap</small></h3>${photosUI(c)}</div>` : ''}
       ${f.looks && lookNow(c) === 'brand' && simple ? `<div class="box"><h3>My brand kit <small>logo · header · graphics</small></h3>${brandUI(c, false)}</div>` : ''}
       ${simple ? `<div class="box"><h3>Text</h3><div class="f"><label>Page title</label><input class="in" data-k="title" value="${esc(c.title)}"></div><div class="f"><label>Tagline <small>pick a preset</small></label><select class="in" data-k="tagline">${[...new Set([c.tagline || '', ...a.taglines])].map(t => `<option value="${esc(t)}" ${t === (c.tagline || '') ? 'selected' : ''}>${esc(t || 'No tagline')}</option>`).join('')}</select></div></div>
@@ -105,8 +106,24 @@
     if (!f.studioPreview) return `<div class="lks">${card('art', 'Art-matched', 'Colors from your art', art)}</div>${lockBox('gold', 'Studio templates and bring-your-own-brand Looks are Gold. Silver can preview Studio.')}`;
     if (!f.looks) return `<div class="lks">${card('art', 'Art-matched', 'Colors from your art', art)}${card('studio', 'Studio', 'Boutique template · preview', studio, true)}${card('brand', 'My brand', 'Your logo + graphics', brand, true)}</div>
       <p class="fine" style="margin-top:8px">${S.pvLook ? 'Previewing the Studio Look (locked). <button class="linkb" data-lkprev="">Back to my page</button>' : 'Tap Studio to preview it in the phone. It can\'t be published on Silver.'}</p>${lockBox('gold', 'Use Studio or My brand on your live page with Gold.')}`;
+    if (st.pro) { const T = BP_T[(c.pro || {}).template || st.pro.template] || BP_T.clean; loadFonts([T.head]);
+      const pro = `<div class="lk-pro" style="background:${T.bg};color:${T.text}"><img src="${esc(imgUrl(st.pro.hero))}" alt=""><i style="font-family:'${T.head}',serif">${esc((c.title || a.label).split(/[(·]/)[0].trim())}</i><u style="background:${T.acc}">Book</u></div>`;
+      return `<div class="lks lks4">${card('pro', 'Pro templates', 'Clean, natural, straight to the point', pro)}${card('studio', 'Studio', 'Boutique template for your trade', studio)}${card('brand', 'My brand', 'Your logo, header + graphics', brand)}${card('art', 'Art-matched', 'Theme from your art', art)}</div>
+      <p class="fine" style="margin-top:8px">Services, prices and policies stay real text in every Look.</p>`; }
     return `<div class="lks">${card('art', 'Art-matched', 'Theme from your art + the modules', art)}${card('studio', 'Studio', 'Boutique template for your trade', studio)}${card('brand', 'My brand', 'Your logo, header + graphics', brand)}</div>
       <p class="fine" style="margin-top:8px">Services, prices and policies stay real text in every Look. Cards and flyers are drawn from your info, so edits show up everywhere.</p>`;
+  }
+  /* round 7: Beauty Pro templates (mirrors beauty.js TEMPLATES / MOTIONS; lash palette shown) */
+  const BP_T = { clean: { label: 'Clean Pro', sub: 'Airy and straight to the point: services + Book on the first screen', head: 'Playfair Display', bg: '#fbfaf7', text: '#1d1b19', acc: '#7d4f42' },
+    luxe: { label: 'Soft Luxe', sub: 'Warm neutrals, script accent, rounded cards', head: 'Cormorant Garamond', bg: '#f6efe8', text: '#2d231f', acc: '#94535a' },
+    editorial: { label: 'Modern Editorial', sub: 'Magazine layout, full-bleed photo grid', head: 'Bodoni Moda', bg: '#121212', text: '#ffffff', acc: '#ffffff' } };
+  const BP_M = { calm: ['Calm', 'Near-static, subtle hover'], lively: ['Lively', 'Soft fades, parallax, shimmer'], dynamic: ['Dynamic', 'Motion hero, trade accent, scroll scenes'] };
+  const proNow = c => Object.assign({}, ST().pro || {}, c.pro || {});
+  function proUI(c) {
+    const P = proNow(c); loadFonts(Object.values(BP_T).map(t => t.head));
+    return `<div class="bpt" role="group" aria-label="Template">${Object.entries(BP_T).map(([id, t]) => `<button type="button" class="bpt-c${P.template === id ? ' on' : ''}" data-bptpl="${id}" aria-pressed="${P.template === id}"><span class="bpt-pv" style="background:${t.bg};color:${t.text}"><i style="font-family:'${t.head}',serif">Aa</i><u style="background:${t.acc}"></u></span><b>${t.label}${id === 'clean' ? ' <em>default</em>' : ''}</b><small>${t.sub}</small></button>`).join('')}</div>
+      <div class="modeseg bpm" role="group" aria-label="Motion">${Object.entries(BP_M).map(([id, m]) => `<button type="button" data-bpmo="${id}" class="${P.motion === id ? 'on' : ''}" aria-pressed="${P.motion === id}"><b>${m[0]}</b><small>${m[1]}</small></button>`).join('')}</div>
+      <p class="fine" style="margin-top:8px">Calm is the default. Every template keeps your services, prices, policies and FAQ as real text, and Book opens your own booking app.</p>`;
   }
   function presetUI(c) {
     const cur = stNow(c).preset; const P = ST().presets || []; loadFonts(P.map(p => p.script));
@@ -373,7 +390,8 @@
     });
     P.addEventListener('click', e => {
       const b = e.target.closest('button,[data-ra]'); if (!b) return; const c = cur();
-      if (b.dataset.look) { save({ look: b.dataset.look }, true); S.pvLook = ''; render(); toast(b.dataset.look === 'art' ? 'Art-matched Look' : b.dataset.look === 'studio' ? 'Studio Look · pick a style below' : 'My brand Look · add your logo and header'); return; }
+      if (b.dataset.look) { save({ look: b.dataset.look }, true); S.pvLook = ''; render(); toast(b.dataset.look === 'art' ? 'Art-matched Look' : b.dataset.look === 'pro' ? 'Pro templates · pick a template and motion below' : b.dataset.look === 'studio' ? 'Studio Look · pick a style below' : 'My brand Look · add your logo and header'); return; }
+      if (b.dataset.bptpl || b.dataset.bpmo) { const P = proNow(c); if (b.dataset.bptpl) P.template = b.dataset.bptpl; else P.motion = b.dataset.bpmo; save({ pro: { template: P.template, motion: P.motion }, look: 'pro' }, true); render(); toast((BP_T[P.template] || {}).label + ' · ' + BP_M[P.motion][0] + ' motion'); return; }
       if (b.dataset.lkprev !== undefined) { S.pvLook = b.dataset.lkprev; render(); return; }
       if (b.dataset.preset) { saveSt(c, { preset: b.dataset.preset }, true); $$('.pre').forEach(x => x.classList.toggle('on', x === b)); render(); return; }
       if (b.dataset.slot) { S.slot = b.dataset.slot; const L = $('#plib'); if (L) { L.hidden = false; $('#plibt').textContent = 'Choose a photo for: ' + (b.querySelector('small') ? b.querySelector('small').textContent : 'flyer ' + (+b.dataset.slot.slice(1) + 1)); L.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } return; }

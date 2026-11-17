@@ -14,11 +14,21 @@
   if (vert !== 'hub' && (cur === 'gold' || cur === 'silver')) {
     var now = document.documentElement.dataset.lookNow || 'art';
     var lrow = mk('tier-switcher-seg lrow'); var lb = document.createElement('span'); lb.textContent = 'Look'; lb.setAttribute('aria-hidden', 'true'); lrow.appendChild(lb);
-    [['art', 'Art'], ['studio', 'Studio'], ['brand', 'My brand']].forEach(function (l) {
+    var BEAUTY = ['lash', 'hair', 'nail'].indexOf(vert) >= 0;   /* round 7: Beauty Pro templates are the Gold default for lash / hair / nail */
+    (BEAUTY ? [['pro', 'Pro'], ['studio', 'Studio'], ['brand', 'My brand'], ['art', 'Art']] : [['art', 'Art'], ['studio', 'Studio'], ['brand', 'My brand']]).forEach(function (l) {
       var ok = looks.indexOf(l[0]) >= 0; var a = document.createElement('a'); var q = new URLSearchParams(location.search); q.set('look', l[0]); q.set('nointro', '1');
       a.href = ok ? location.pathname + '?' + q.toString() : new URL(pre + 'gold/?look=' + l[0] + '&nointro=1', ROOT).href; a.dataset.look = l[0];
       a.textContent = l[1] + (ok ? (cur === 'silver' && l[0] !== 'art' ? ' 🔒' : '') : ' · Gold'); a.setAttribute('aria-label', 'Look: ' + a.textContent);
       if (now === l[0]) a.setAttribute('aria-current', 'page'); lrow.appendChild(a); });
+    if (now === 'pro' && window.CPBeauty) {   /* Template + Motion pickers (preview only; the creator sets these in the hub) */
+      var prow = mk('tier-switcher-row prow'); var q0 = new URLSearchParams(location.search); var pk = window.CPBeauty.pick(window.CP.cfg, q0);
+      [['tpl', 'Template', window.CPBeauty.TEMPLATES, pk.tpl], ['motion', 'Motion', window.CPBeauty.MOTIONS, pk.motion]].forEach(function (d) {
+        var w = document.createElement('label'); w.className = 'ts-trade ts-pro'; var k = document.createElement('span'); k.className = 'ts-k'; k.textContent = d[1]; k.setAttribute('aria-hidden', 'true');
+        var se = document.createElement('select'); se.setAttribute('aria-label', d[1]);
+        Object.keys(d[2]).forEach(function (id) { var o = document.createElement('option'); o.value = id; o.textContent = d[2][id].label; if (id === d[3]) o.selected = true; se.appendChild(o); });
+        se.addEventListener('change', function () { var q = new URLSearchParams(location.search); q.set('look', 'pro'); q.set(d[0], se.value); q.set('nointro', '1'); location.href = location.pathname + '?' + q.toString(); });
+        w.appendChild(k); w.appendChild(se); prow.appendChild(w); });
+    }
   }
   var row = mk('tier-switcher-row');
   var wrap = document.createElement('label'); wrap.className = 'ts-trade';

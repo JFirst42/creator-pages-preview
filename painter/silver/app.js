@@ -7,8 +7,8 @@
   /* Creator hub live preview (?hub=1): the hub editor writes overrides to localStorage; only whitelisted content keys apply.
      Tier features (cfg.features) can never be changed from here. */
   const HUB = qs.has('hub');
-  const HUB_KEYS = ['title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture', 'tip_saying', 'music', 'accent', 'look', 'studio', 'brand', 'drop', 'photos'];
-  if (HUB) { try { const o = JSON.parse(localStorage.getItem('cp-hub-' + (cfg.hub_key || cfg.slug)) || 'null'); if (o) HUB_KEYS.forEach(k => { if (o[k] !== undefined && o[k] !== null) cfg[k] = (k === 'studio' || k === 'brand') && cfg[k] ? Object.assign({}, cfg[k], o[k]) : o[k]; }); } catch (e) {} }
+  const HUB_KEYS = ['title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture', 'tip_saying', 'music', 'accent', 'look', 'studio', 'brand', 'drop', 'photos', 'pro'];
+  if (HUB) { try { const o = JSON.parse(localStorage.getItem('cp-hub-' + (cfg.hub_key || cfg.slug)) || 'null'); if (o) HUB_KEYS.forEach(k => { if (o[k] !== undefined && o[k] !== null) cfg[k] = (k === 'studio' || k === 'brand' || k === 'pro') && cfg[k] ? Object.assign({}, cfg[k], o[k]) : o[k]; }); } catch (e) {} }
   /* hub photo swaps: 'local:<slot>' points at a downscaled upload kept in this browser (demo); anything else is a page-relative path */
   const HKEY = cfg.hub_key || cfg.slug; const resImg = v => typeof v === 'string' && v.startsWith('local:') ? (localStorage.getItem('cp-hub-img-' + HKEY + '-' + v.slice(6)) || '') : v;
   if (HUB) { const P = cfg.photos || {}; if (P.cover) cfg.cover = resImg(P.cover) || cfg.cover; if (P.banner) cfg.studio = Object.assign({}, cfg.studio, { banner_photo: resImg(P.banner) });
@@ -29,12 +29,15 @@
   if (cfg.theme_mode === 'light') root.dataset.theme = 'light';
   if (cfg.vertical) root.dataset.vertical = cfg.vertical;
   /* ---------- round 5: Looks. Gold: art | studio | brand. Silver: may preview studio (locked). ?look= is the demo switcher. ---------- */
-  const LOOKS = F.looks ? ['art', 'studio', 'brand'] : F.studioPreview ? ['art', 'studio'] : ['art'];
+  /* round 7: lash / hair / nail Gold pages also get the Beauty Pro templates (look "pro"; beauty.js) */
+  const BEAUTY = F.looks && !!window.CPBeauty && ['lash', 'hair', 'nail'].includes(cfg.vertical);
+  const LOOKS = BEAUTY ? ['pro', 'studio', 'brand', 'art'] : F.looks ? ['art', 'studio', 'brand'] : F.studioPreview ? ['art', 'studio'] : ['art'];
   let LOOK = LOOKS.includes(cfg.look) ? cfg.look : 'art'; if (LOOKS.includes(qs.get('look'))) LOOK = qs.get('look');
-  const SKIN = LOOK !== 'art' && !!window.CPStudio; const STUDIO_LOCKED = SKIN && !F.looks;
+  const PRO = LOOK === 'pro';
+  const SKIN = LOOK !== 'art' && !PRO && !!window.CPStudio; const STUDIO_LOCKED = SKIN && !F.looks;
   root.dataset.looks = LOOKS.join(','); root.dataset.lookNow = LOOK;
-  if (SKIN) window.CPStudio.apply(cfg, root, LOOK); else root.dataset.look = 'art';
-  const GOLD = !!F.cinematicHero && !SKIN;
+  if (PRO) window.CPBeauty.apply(cfg, root, qs); else if (SKIN) window.CPStudio.apply(cfg, root, LOOK); else root.dataset.look = 'art';
+  const GOLD = !!F.cinematicHero && !SKIN && !PRO;
   /* ---------- round 4: music (none | upload | link), theme motion accent, custom tip saying ----------
      No music = no sound bars anywhere: the hero gets a motion accent that fits the trade instead (accents.js). */
   if (HUB && cfg.music && cfg.music.mode === 'upload' && cfg.music.local) { try { const d = localStorage.getItem('cp-hub-audio-' + (cfg.hub_key || cfg.slug)); if (d) cfg.music.src = d; } catch (e) {} }
@@ -695,10 +698,11 @@
   /* round 6: the demo label is a thin in-flow strip at the very top (scrolls away, never covers content); the SAMPLE pill + footer note stay as persistent labels */
   if (cfg.demo_banner) { document.body.insertAdjacentHTML('afterbegin', `<div class="demo-banner" role="note">${esc(cfg.demo_banner)}${HUB ? ' · hub preview' : ''}</div>`); root.style.setProperty('--demo-h', '18px');
     const gl = document.querySelector('.g-live'); if (gl) { const f = () => { gl.style.top = Math.max(0, 18 - scrollY) + 'px'; }; f(); addEventListener('scroll', f, { passive: true }); } }
-  app.innerHTML = goldChrome + topbar() + hero() + musicDock() + featured() + links() + socials() + countdownCard() + tabbed() + qrCard() + analytics() + footer();
+  if (PRO) app.innerHTML = window.CPBeauty.render({ provider, tipChip, footer, icon, names: NAMES, esc });
+  else app.innerHTML = goldChrome + topbar() + hero() + musicDock() + featured() + links() + socials() + countdownCard() + tabbed() + qrCard() + analytics() + footer();
   // Bronze: QR sits right after links (it's the only extra). Above order already handles that.
 
-  if (window.CPStudio) window.CPStudio.wire();
+  if (PRO) window.CPBeauty.wire(); else if (window.CPStudio) window.CPStudio.wire();
   if (qs.get('scroll')) requestAnimationFrame(() => scrollTo(0, +qs.get('scroll')));
   /* ---------- behaviors ---------- */
   // countdowns
