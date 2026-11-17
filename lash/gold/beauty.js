@@ -62,10 +62,11 @@ window.CPBeauty = (function () {
         ${P.rating ? `<p class="bp-rate"><span aria-hidden="true">★★★★★</span> ${esc(P.rating)}</p>` : ''}</div></section>`;
   }
   function menu(x) {
-    const cfg = x.cfg, M = (cfg.pro || {}).menu || [{ cat: 'Services', items: cfg.services || [] }];
+    const cfg = x.cfg, M = ((cfg.pro || {}).menu || [{ cat: 'Services', items: cfg.services || [] }]).filter(c => (c.items || []).length);
+    if (!M.length) return sec(x, 'services', TRADE[x.v].menu, '', `<p class="bp-note">Services, prices and open times are on ${esc(x.provider(cfg.booking_url || '').name)}.</p><div class="bp-cta">${bookBtn(x, null, 'See services & book', 'lg')}</div>`);
     const tabs = M.length > 1 ? `<div class="bp-cats" role="group" aria-label="Service categories">${M.map((c, i) => `<button type="button" data-bpcat="${i}" aria-pressed="${i === 0}">${esc(c.cat)}</button>`).join('')}</div>` : '';
     const groups = M.map((c, i) => `<div class="bp-group${i === 0 ? ' on' : ''}" data-bpgroup="${i}"><h3 class="bp-gh">${esc(c.cat)}</h3>${c.note ? `<p class="bp-note">${esc(c.note)}</p>` : ''}
-      <ul class="bp-items">${c.items.map(s => `<li class="bp-item"><div class="bp-it"><b>${esc(s.name)}</b>${s.desc ? `<span>${esc(s.desc)}</span>` : ''}<small>${esc([s.time, s.price].filter(Boolean).join(' · '))}</small></div>${bookBtn(x, s.book_url, 'Book', 'sm out')}</li>`).join('')}</ul></div>`).join('');
+      <ul class="bp-items">${c.items.map(s => `<li class="bp-item"><div class="bp-it"><b>${esc(s.name)}</b>${s.desc ? `<span>${esc(s.desc)}</span>` : s.note ? `<span>${esc(s.note)}</span>` : ''}<small>${esc([s.time, s.price].filter(Boolean).join(' · '))}</small></div>${bookBtn(x, s.book_url, 'Book', 'sm out')}</li>`).join('')}</ul></div>`).join('');
     return sec(x, 'services', TRADE[x.v].menu, (cfg.services_note || 'Sample prices') + ' · booking opens their booking page', tabs + `<div class="bp-menu">${groups}</div>`);
   }
   function sec(x, id, title, sub, inner, cls) {
@@ -102,7 +103,7 @@ window.CPBeauty = (function () {
   function closing(x) {
     const cfg = x.cfg; const tip = x.tipChip ? x.tipChip() : '';
     return `<section class="bp-close"><h2>${esc((cfg.pro || {}).closing || 'Ready when you are')}</h2><div class="bp-cta">${bookBtn(x, null, 'Book now', 'lg')}</div>
-      <div class="bp-row">${tip}<button class="bp-btn ghost" data-act="share">Share this page</button>${(cfg.socials || []).map(s => `<a class="bp-soc" href="${esc(s.url)}" data-link="${esc(s.platform)}" aria-label="${esc(x.names[s.platform] || s.platform)}">${x.icon(s.platform)}</a>`).join('')}</div><p class="bp-credit"><a href="CREDITS.md" target="_blank" rel="noopener">Photo credits</a> · CC0 natural photography</p></section>`;
+      <div class="bp-row">${tip}<button class="bp-btn ghost" data-act="share">Share this page</button>${(cfg.socials || []).map(s => `<a class="bp-soc" href="${esc(s.url)}" data-link="${esc(s.platform)}" aria-label="${esc(x.names[s.platform] || s.platform)}">${x.icon(s.platform)}</a>`).join('')}</div>${(cfg.pro || {}).credits ? `<p class="bp-credit"><a href="CREDITS.md" target="_blank" rel="noopener">Photo credits</a> · CC0 natural photography</p>` : ''}</section>`;
   }
   function render(ctx) {
     const x = Object.assign({}, ctx, S, { n: 0 });
