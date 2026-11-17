@@ -5,13 +5,24 @@
   var ROOT = new URL('.', s.src), rel = location.pathname.replace(/index\.html$/, '').slice(new URL(ROOT).pathname.length);
   var vert = /^tattoo/.test(rel) ? 'tattoo' : /^lash/.test(rel) ? 'lash' : /^hub/.test(rel) ? 'hub' : 'music';
   var sub = vert === 'music' ? rel : rel.replace(/^[a-z]+\//, '');
-  var cur = /^bronze/.test(sub) ? 'bronze' : /^silver/.test(sub) ? 'silver' : /^compare/.test(sub) ? 'compare' : /^gold/.test(sub) ? 'gold' : (vert === 'lash' ? 'silver' : 'gold');
+  var cur = /^bronze/.test(sub) ? 'bronze' : /^silver/.test(sub) ? 'silver' : /^compare/.test(sub) ? 'compare' : /^gold/.test(sub) ? 'gold' : 'gold';
   var nav = document.createElement('nav'); nav.className = 'tier-switcher'; nav.setAttribute('aria-label', 'Preview');
   var mk = function (cls) { var d = document.createElement('div'); d.className = cls; nav.appendChild(d); return d; };
   var vrow = mk('tier-switcher-seg vrow');
-  [['music', 'Music', 'gold/'], ['tattoo', 'Tattoo', 'tattoo/gold/'], ['lash', 'Lash', 'lash/silver/'], ['hub', 'Hub', 'hub/']].forEach(function (v) {
+  [['music', 'Music', 'gold/'], ['tattoo', 'Tattoo', 'tattoo/gold/'], ['lash', 'Lash', 'lash/gold/'], ['hub', 'Hub', 'hub/']].forEach(function (v) {
     var a = document.createElement('a'); a.href = new URL(v[2] + (v[0] === 'hub' ? '' : '?nointro=1'), ROOT).href; a.textContent = v[1]; a.dataset.v = v[0];
     if (vert === v[0]) a.setAttribute('aria-current', 'page'); vrow.appendChild(a); });
+  /* round 5: Look row on Gold (Art | Studio | My brand); Silver shows Studio as a locked preview */
+  var pre0 = vert === 'music' ? '' : vert + '/';
+  var looks = (document.documentElement.dataset.looks || '').split(',').filter(Boolean);
+  if (vert !== 'hub' && cur !== 'compare' && (cur === 'gold' || cur === 'silver')) {
+    var now = document.documentElement.dataset.lookNow || 'art';
+    var lrow = mk('tier-switcher-seg lrow'); var lb = document.createElement('span'); lb.textContent = 'Look'; lrow.appendChild(lb);
+    [['art', 'Art'], ['studio', 'Studio'], ['brand', 'My brand']].forEach(function (l) {
+      var ok = looks.indexOf(l[0]) >= 0; var a = document.createElement('a'); var q = new URLSearchParams(location.search); q.set('look', l[0]); q.set('nointro', '1');
+      a.href = ok ? location.pathname + '?' + q.toString() : new URL(pre0 + 'gold/?look=' + l[0] + '&nointro=1', ROOT).href; a.dataset.look = l[0];
+      a.textContent = l[1] + (ok ? (cur === 'silver' && l[0] !== 'art' ? ' 🔒' : '') : ' · Gold'); if (now === l[0]) a.setAttribute('aria-current', 'page'); lrow.appendChild(a); });
+  }
   if (vert !== 'hub') {
     var seg = mk('tier-switcher-seg'); seg.setAttribute('role', 'tablist');
     var pre = vert === 'music' ? '' : vert + '/';

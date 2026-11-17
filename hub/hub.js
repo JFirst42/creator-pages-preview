@@ -8,7 +8,7 @@
   const qs = new URLSearchParams(location.search);
   const TIERS = ['bronze', 'silver', 'gold'], TL = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold' };
   const rank = t => TIERS.indexOf(t);
-  let D, S = { acct: null, tier: 'gold', tab: 'editor', range: 30 };
+  let D, S = { acct: null, tier: 'gold', tab: 'editor', range: 30, mode: 'simple', pvLook: '' };
   try { S = Object.assign(S, JSON.parse(sessionStorage.getItem('cp-hub-ui') || '{}')); } catch (e) {}
   if (qs.get('acct')) S.acct = qs.get('acct'); if (qs.get('tier')) S.tier = qs.get('tier'); if (qs.get('tab')) S.tab = qs.get('tab');
   if (qs.has('logout')) S.acct = null;
@@ -54,10 +54,24 @@
     const FEAT = isPort ? [['book', 'Book now']] : a.layout === 'streamer' ? [['live', 'Live stream'], ['video', 'Latest video'], ['merch', 'Merch / beats link']] : [['release', 'New release'], ['video', 'Latest video'], ['live', 'Live stream'], ['merch', 'Merch / beats link']];
     const PLAT = ['spotify', 'apple_music', 'youtube', 'soundcloud', 'tidal', 'amazon_music', 'bandcamp', 'tiktok', 'instagram', 'twitch', 'kick', 'discord', 'x', 'shopify', 'beatstars'];
     const links = (c.links || []).map((l, i) => `<div class="row" style="margin-bottom:6px"><select class="in" data-li="${i}" data-k="platform" style="flex:0 0 118px">${[...new Set([l.platform, ...PLAT])].map(p => `<option ${p === l.platform ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select><input class="in" type="url" data-li="${i}" data-k="url" value="${esc(l.url)}" placeholder="https://..."><button class="mini" data-act="rmlink" data-i="${i}" aria-label="Remove">✕</button></div>`).join('');
-    return `<div class="ed"><div class="pv"><div class="phone"><iframe id="pvf" title="Live preview" src="${esc(a.pages[S.tier])}?hub=1&nointro=1"></iframe></div>
+    const adv = f.hubAdvanced && S.mode === 'advanced', simple = f.hubAdvanced && !adv;
+    const pvq = S.pvLook ? '&look=' + S.pvLook : '';
+    return `<div class="ed"><div class="pv"><div class="phone"><iframe id="pvf" title="Live preview" src="${esc(a.pages[S.tier])}?hub=1&nointro=1${pvq}"></iframe></div>
         <div class="pv-side"><b>Live preview</b><span>${TL[S.tier]} page · updates as you type</span><span class="pill">Preview only</span><span>Edits apply only in this browser's preview (?hub=1). The public page doesn't change in the demo.</span><button class="mini" data-act="reset">Reset edits</button><a class="mini" style="display:grid;place-items:center;text-decoration:none;color:var(--text)" href="${esc(a.pages[S.tier])}?hub=1" target="_blank">Open full page ↗</a></div></div>
       <div style="display:grid;gap:12px">
-      <div class="box"><h3>Text</h3><div class="f"><label>Page title</label><input class="in" data-k="title" value="${esc(c.title)}"></div><div class="f"><label>Tagline <small>pick a preset</small></label><select class="in" data-k="tagline">${[...new Set([c.tagline || '', ...a.taglines])].map(t => `<option value="${esc(t)}" ${t === (c.tagline || '') ? 'selected' : ''}>${esc(t || 'No tagline')}</option>`).join('')}</select></div><p class="fine">Structured on purpose: name and links are typed, everything else is picked. Gold can ask for more in the review note.</p></div>
+      ${f.hubAdvanced ? `<div class="modeseg" role="group" aria-label="Editor mode"><button data-mode="simple" class="${simple ? 'on' : ''}"><b>Simple</b><small>Look, style, photos</small></button><button data-mode="advanced" class="${adv ? 'on' : ''}"><b>Advanced</b><small>Fonts, colors, cards, order, blocks</small></button></div>` : ''}
+      <div class="box"><h3>Look <small>${f.looks ? 'how your whole page is dressed' : 'Gold option'}</small></h3>${lookUI(c)}</div>
+      ${f.looks && lookNow(c) === 'studio' ? `<div class="box"><h3>Style <small>${esc(A().verticalLabel)} presets</small></h3>${presetUI(c)}</div>` : ''}
+      ${f.looks ? `<div class="box"><h3>Photos <small>tap a slot to swap</small></h3>${photosUI(c)}</div>` : ''}
+      ${f.looks && lookNow(c) === 'brand' && simple ? `<div class="box"><h3>My brand kit <small>logo · header · graphics</small></h3>${brandUI(c, false)}</div>` : ''}
+      ${simple ? `<div class="box"><h3>Text</h3><div class="f"><label>Page title</label><input class="in" data-k="title" value="${esc(c.title)}"></div><div class="f"><label>Tagline <small>pick a preset</small></label><select class="in" data-k="tagline">${[...new Set([c.tagline || '', ...a.taglines])].map(t => `<option value="${esc(t)}" ${t === (c.tagline || '') ? 'selected' : ''}>${esc(t || 'No tagline')}</option>`).join('')}</select></div></div>
+      <div class="box simple-more"><b>That's it for a quick setup.</b><p class="fine">Your cards, flyers, policies and FAQ were filled from your info. Want to change fonts, colors, card text, section order or add your own blocks?</p><button class="mini" data-mode="advanced">Switch to Advanced</button></div>` : ''}
+      ${adv && lookNow(c) !== 'art' ? `<div class="box"><h3>Fonts &amp; colors <small>curated list</small></h3>${fontsUI(c)}</div>
+      <div class="box"><h3>Info cards <small>Good to know · edit the text</small></h3>${cardsUI(c)}</div>
+      <div class="box"><h3>${A().layout === 'portfolio' ? 'Flash sale / drop card' : 'Drop card'} <small>auto-made · edit it</small></h3>${dropUI(c)}</div>
+      ${A().layout === 'portfolio' ? `<div class="box"><h3>Flyers <small>service categories</small></h3>${flyersUI(c)}</div>` : ''}` : ''}
+      ${adv ? `<div class="box"><h3>My brand kit <small>logo · header · Canva/Etsy graphics as image blocks</small></h3>${brandUI(c, true)}</div>` : ''}
+      ${simple ? '' : `<div class="box"><h3>Text</h3><div class="f"><label>Page title</label><input class="in" data-k="title" value="${esc(c.title)}"></div><div class="f"><label>Tagline <small>pick a preset</small></label><select class="in" data-k="tagline">${[...new Set([c.tagline || '', ...a.taglines])].map(t => `<option value="${esc(t)}" ${t === (c.tagline || '') ? 'selected' : ''}>${esc(t || 'No tagline')}</option>`).join('')}</select></div><p class="fine">Structured on purpose: name and links are typed, everything else is picked. Gold can ask for more in the review note.</p></div>
       <div class="box"><h3>Featured first <small>drives the hero buttons</small></h3><div class="f"><select class="in" data-k="feature_first">${FEAT.map(([v, l]) => `<option value="${v}" ${c.feature_first === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
         ${isPort ? `<p class="fine">Book-now uses your booking link: ${esc(a.booking_label || '')}</p>` : `<div class="f"><label>Featured item</label><select class="in" data-fk="title">${[...new Set([(c.featured || {}).title || '', ...a.featureTitles])].filter(Boolean).map(t => `<option ${t === (c.featured || {}).title ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></div><div class="f"><label>Featured link <small>URL</small></label><input class="in" type="url" data-fk="url" value="${esc((c.featured || {}).url || '')}"></div>`}</div>
       <div class="box"><h3>Links <small>${(c.links || []).length} links</small></h3>${links}<button class="mini" data-act="addlink">+ Add link</button></div>
@@ -66,9 +80,77 @@
       <div class="box"><h3>Hero background</h3>${f.heroVideoBg ? `<div class="row">${[['art3d', '3D art'], ['video', 'Video loop']].map(([v, l]) => `<label class="sw-row" style="flex:1"><input type="radio" name="herobg" value="${v}" ${(c.hero_bg || 'art3d') === v ? 'checked' : ''}> ${l}</label>`).join('')}</div><p class="fine">Fans can still flip it with the small toggle on the hero.</p>` : lockBox('gold', 'The 3D art / video hero is Gold.')}</div>
       <div class="box"><h3>Music <small>optional · no music = no sound bars</small></h3>${musicUI(c)}</div>
       <div class="box"><h3>Hero accent <small>${f.accentPicker ? 'pick one for your trade' : f.accentDefault ? 'default for your trade' : ''}</small></h3>${accentUI(c)}</div>
-      <div class="box"><h3>Tip button <small>links out · no payments on the page</small></h3>${f.tipButton ? tipUI(c) : lockBox('silver', 'The Tip button is Silver and Gold.')}</div>
+      <div class="box"><h3>Tip button <small>links out · no payments on the page</small></h3>${f.tipButton ? tipUI(c) : lockBox('silver', 'The Tip button is Silver and Gold.')}</div>`}
       </div></div>`;
   }
+
+  /* ---------------- round 5: Looks (Art | Studio | My brand) ---------------- */
+  const ST = () => A().studio || {};
+  const lookNow = c => (F().looks ? (c.look || ST().look || 'art') : 'art');
+  const stNow = c => Object.assign({}, { preset: ST().preset }, c.studio || {});
+  const saveSt = (c, patch, now) => save({ studio: Object.assign({}, stNow(c), patch) }, now);
+  const brandNow = c => Object.assign({}, ST().brand || {}, c.brand || {});
+  const presetObj = id => (ST().presets || []).find(p => p.id === id) || (ST().presets || [])[0] || {};
+  const imgUrl = v => !v ? '' : v.startsWith('local:') ? (localStorage.getItem('cp-hub-img-' + S.acct + '-' + v.slice(6)) || '') : v.startsWith('data:') ? v : ST().photoBase + v;
+  let fontsLoaded = {};
+  function loadFonts(list) { const need = list.filter(f => f && !fontsLoaded[f]); if (!need.length) return; need.forEach(f => fontsLoaded[f] = 1);
+    const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?' + need.map(f => 'family=' + f.replace(/ /g, '+')).join('&') + '&display=swap'; document.head.appendChild(l); }
+  function lookUI(c) {
+    const f = F(), st = ST(), now = lookNow(c), p = presetObj(stNow(c).preset), b = brandNow(c), a = A();
+    loadFonts([p.script, p.head]);
+    const card = (id, title, sub, inner, lock) => `<button type="button" class="lk${now === id ? ' on' : ''}${lock ? ' locked' : ''}" ${lock ? `data-lkprev="${id}"` : `data-look="${id}"`}><div class="lk-pv">${inner}</div><b>${title}${lock ? ' 🔒' : ''}${st.bestLook === id && !lock ? ' <em>best for you</em>' : ''}</b><small>${sub}</small></button>`;
+    const art = `<div class="lk-art" style="background-image:url('${esc(a.avatar)}')"><span style="background:${esc(a.palette.acc)}"></span></div>`;
+    const studio = `<div class="lk-st" style="background:${esc(p.bg)};color:${esc(p.text)}"><i style="font-family:'${esc(p.script)}',cursive;color:${esc(p.acc)}">${esc((c.title || a.label).split(/[(·]/)[0].trim())}</i><span>${[p.acc, p.acc2, p.card].map(x => `<u style="background:${esc(x)}"></u>`).join('')}</span></div>`;
+    const brand = `<div class="lk-br" style="background-image:url('${esc(imgUrl(b.header) || a.avatar)}')">${b.logo ? `<img src="${esc(imgUrl(b.logo))}" alt="">` : '<span>Your logo</span>'}</div>`;
+    if (!f.studioPreview) return `<div class="lks">${card('art', 'Art-matched', 'Colors from your art', art)}</div>${lockBox('gold', 'Studio templates and bring-your-own-brand Looks are Gold. Silver can preview Studio.')}`;
+    if (!f.looks) return `<div class="lks">${card('art', 'Art-matched', 'Colors from your art', art)}${card('studio', 'Studio', 'Boutique template · preview', studio, true)}${card('brand', 'My brand', 'Your logo + graphics', brand, true)}</div>
+      <p class="fine" style="margin-top:8px">${S.pvLook ? 'Previewing the Studio Look (locked). <button class="linkb" data-lkprev="">Back to my page</button>' : 'Tap Studio to preview it in the phone. It can\'t be published on Silver.'}</p>${lockBox('gold', 'Use Studio or My brand on your live page with Gold.')}`;
+    return `<div class="lks">${card('art', 'Art-matched', 'Theme from your art + the modules', art)}${card('studio', 'Studio', 'Boutique template for your trade', studio)}${card('brand', 'My brand', 'Your logo, header + graphics', brand)}</div>
+      <p class="fine" style="margin-top:8px">Services, prices and policies stay real text in every Look. Cards and flyers are drawn from your info, so edits show up everywhere.</p>`;
+  }
+  function presetUI(c) {
+    const cur = stNow(c).preset; const P = ST().presets || []; loadFonts(P.map(p => p.script));
+    return `<div class="presets">${P.map(p => `<button type="button" class="pre${p.id === cur ? ' on' : ''}" data-preset="${esc(p.id)}" style="background:${esc(p.bg)};color:${esc(p.text)};border-color:${esc(p.line)}"><i style="font-family:'${esc(p.script)}',cursive;color:${esc(p.acc)}">${esc(p.label.split(' ')[0])}</i><span>${[p.bg2, p.acc, p.acc2].map(x => `<u style="background:${esc(x)}"></u>`).join('')}</span><small>${esc(p.label)}</small></button>`).join('')}</div>`;
+  }
+  function photosUI(c) {
+    const st = ST(), P = c.photos || {}, lib = st.photoLib || [], n = Math.min(st.galleryCount || 0, 6);
+    const slot = (k, label, v, def) => `<button type="button" class="ps" data-slot="${k}"><span style="background-image:url('${esc(imgUrl(v) || imgUrl(def))}')"></span><small>${label}</small></button>`;
+    const slots = [slot('banner', 'Header banner', P.banner, lib[0]), slot('cover', 'Cover / art', P.cover, lib[0])];
+    for (let i = 0; i < n; i++) slots.push(slot('g' + i, 'Gallery ' + (i + 1), (P.gallery || [])[i], lib.filter(x => x.startsWith('img/'))[i] || lib[i]));
+    return `<div class="pslots">${slots.join('')}</div><div class="plib" id="plib" hidden><div class="plib-h"><b id="plibt">Choose a photo</b><button class="mini" data-act="plibx">Done</button></div><div class="plib-g">${lib.map(x => `<button type="button" data-pick="${esc(x)}" style="background-image:url('${esc(imgUrl(x))}')" aria-label="${esc(x)}"></button>`).join('')}<label class="plib-up">+ Upload<input type="file" accept="image/*" data-upimg></label></div><p class="fine">Uploads are shrunk and kept in this browser only (demo). The real version stores them with your page.</p></div>`;
+  }
+  function fontsUI(c) {
+    const st = stNow(c), FL = ST().fonts || {}, p = presetObj(st.preset), fo = st.fonts || {}, co = st.colors || {};
+    const sel = (k, label, list, v) => `<div class="f"><label>${label}</label><select class="in" data-font="${k}">${['', ...list].map(x => `<option value="${esc(x)}" ${x === (v || '') ? 'selected' : ''}>${esc(x || 'Preset default')}</option>`).join('')}</select></div>`;
+    const col = (k, label) => `<label><input type="color" data-scol="${k}" value="${esc(co[k] || p[k] || '#888888')}">${label}</label>`;
+    return `<div class="rowx">${sel('display', 'Wordmark / script', [...(FL.script || []), ...(FL.display || [])], fo.display)}${sel('head', 'Headings', [...(FL.serif || []), ...(FL.display || [])], fo.head)}${sel('body', 'Body text', FL.body || [], fo.body)}</div>
+      <div class="colors" style="margin-top:8px">${col('bg', 'Background')}${col('card', 'Cards')}${col('acc', 'Accent')}${col('text', 'Text')}<button class="mini" data-act="streset">Preset colors + fonts</button></div>`;
+  }
+  function cardsUI(c) {
+    const L = stNow(c).cards || ST().cards || [];
+    return L.map((k, i) => `<div class="cardx"><input class="in" data-card="${i}" data-ck="title" value="${esc(k.title)}" maxlength="40">
+      <textarea class="in" data-card="${i}" data-ck="${k.qa ? 'qa' : 'items'}" rows="${Math.min(6, (k.items || k.qa || []).length + 1)}">${esc(k.qa ? k.qa.map(q => (q[0] ?? q.q) + ' | ' + (q[1] ?? q.a)).join('\n') : (k.items || []).join('\n'))}</textarea></div>`).join('') + `<p class="fine">One line per point${L.some(k => k.qa) ? ' · FAQ lines are "question | answer"' : ''}. Plain text only.</p>`;
+  }
+  function dropUI(c) {
+    const d = Object.assign({}, ST().drop || {}, stNow(c).drop || {}); const end = d.ends ? d.ends.slice(0, 16) : '';
+    return `<div class="rowx"><div class="f"><label>Label</label><input class="in" data-drop="kicker" value="${esc(d.kicker)}" maxlength="24"></div><div class="f"><label>Title</label><input class="in" data-drop="title" value="${esc(d.title)}" maxlength="40"></div></div>
+      <div class="rowx"><div class="f"><label>Line</label><input class="in" data-drop="sub" value="${esc(d.sub)}" maxlength="60"></div><div class="f"><label>Ends (ET)</label><input class="in" type="datetime-local" data-drop="ends" value="${esc(end)}"></div></div>
+      <div class="rowx"><div class="f"><label>Button</label><input class="in" data-drop="cta" value="${esc(d.cta)}" maxlength="24"></div><label class="sw-row" style="align-self:end"><input type="checkbox" data-drop="off" ${d.off ? 'checked' : ''}> Hide the card</label></div>`;
+  }
+  function flyersUI(c) {
+    const L = stNow(c).categories || ST().categories || [];
+    return L.map((k, i) => `<div class="row" style="margin-bottom:6px"><input class="in" data-cat="${i}" value="${esc(k.name)}" maxlength="28"><button class="mini" data-slot="f${i}">Photo</button></div>`).join('') + '<p class="fine">Services are sorted into these flyers by name. Prices stay real text on each flyer.</p>';
+  }
+  function brandUI(c, full) {
+    const b = brandNow(c), FL = ST().fonts || {}, G = b.graphics || [];
+    const up = (k, label) => `<label class="bup"><span style="background-image:url('${esc(imgUrl(b[k]))}')">${b[k] ? '' : '+'}</span><small>${label}</small><input type="file" accept="image/*" data-brandimg="${k}"></label>`;
+    return `<div class="bups">${up('logo', 'Logo')}${up('header', 'Header image')}</div>
+      <div class="f" style="margin-top:8px"><label>Graphics <small>Canva / Etsy flyers as image blocks</small></label><div class="bgfx">${G.map((g, i) => `<div><span style="background-image:url('${esc(imgUrl(g.src))}')"></span><button class="mini" data-rmgfx="${i}" aria-label="Remove">✕</button></div>`).join('')}<label class="bup sm"><span>+</span><input type="file" accept="image/*" data-brandimg="gfx"></label></div></div>
+      ${full ? `<div class="rowx"><div class="f"><label>Display font</label><select class="in" data-bfont="display">${['', ...(FL.script || []), ...(FL.display || []), ...(FL.serif || [])].map(x => `<option value="${esc(x)}" ${x === ((b.fonts || {}).display || '') ? 'selected' : ''}>${esc(x || 'Auto')}</option>`).join('')}</select></div><div class="f"><label>Body font</label><select class="in" data-bfont="body">${['', ...(FL.body || [])].map(x => `<option value="${esc(x)}" ${x === ((b.fonts || {}).body || '') ? 'selected' : ''}>${esc(x || 'Auto')}</option>`).join('')}</select></div></div>` : ''}
+      <p class="fine">Shows when the Look is "My brand". Colors are picked from your logo/header. Prices and policies are still typed text, not baked into images.</p>`;
+  }
+  function shrink(file, max, cb) { const rd = new FileReader(); rd.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)); const cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); const x = cv.getContext('2d'); x.drawImage(im, 0, 0, cv.width, cv.height); cb(cv.toDataURL(/png/.test(file.type) ? 'image/png' : 'image/jpeg', .82)); }; im.src = rd.result; }; rd.readAsDataURL(file); }
+  function putImg(slot, data) { try { localStorage.setItem('cp-hub-img-' + S.acct + '-' + slot, data); return 'local:' + slot; } catch (e) { toast('That image is too big for this browser-only preview'); return null; } }
   function sectionsUI(c) {
     const a = A(), names = D.sections, rel = a.relevant;
     const allowed = new Set([...rel.core, ...rel.optional, ...(a.takes_bookings ? rel.bookings || [] : [])]);
@@ -250,6 +332,12 @@
       const t = e.target, c = cur();
       if (t.type === 'url') { const okU = !t.value || /^(https:\/\/[^\s]+|#placeholder[\w-]*)$/i.test(t.value); t.style.borderColor = okU ? '' : '#ff6b6b'; if (!okU) return; }
       if (t.tagName === 'SELECT' && t.dataset.k === 'tagline') return;
+      if (t.dataset.card !== undefined) { const L = JSON.parse(JSON.stringify(stNow(c).cards || ST().cards || [])), k = L[+t.dataset.card], v = t.value;
+        if (t.dataset.ck === 'title') k.title = v.slice(0, 40); else if (t.dataset.ck === 'qa') k.qa = v.split('\n').filter(x => x.trim()).map(x => { const [q, ...r] = x.split('|'); return [q.trim(), r.join('|').trim()]; }); else k.items = v.split('\n').filter(x => x.trim()).slice(0, 8);
+        saveSt(c, { cards: L }); return; }
+      if (t.dataset.drop && t.type !== 'checkbox') { const d = Object.assign({}, ST().drop || {}, stNow(c).drop || {}); d[t.dataset.drop] = t.dataset.drop === 'ends' ? (t.value ? t.value + ':00-05:00' : '') : t.value; saveSt(c, { drop: d }); return; }
+      if (t.dataset.cat !== undefined) { const L = JSON.parse(JSON.stringify(stNow(c).categories || ST().categories || [])); L[+t.dataset.cat].name = t.value.slice(0, 28); saveSt(c, { categories: L }); return; }
+      if (t.dataset.scol) { saveSt(c, { colors: Object.assign({}, stNow(c).colors || {}, { [t.dataset.scol]: t.value }) }); return; }
       if (t.dataset.k && !t.dataset.li) save({ [t.dataset.k]: t.value });
       if (t.dataset.fk) save({ featured: Object.assign({}, c.featured || {}, { [t.dataset.fk]: t.value }) });
       if (t.dataset.li) { const L = JSON.parse(JSON.stringify(c.links || [])); L[+t.dataset.li][t.dataset.k] = t.value; save({ links: L }); }
@@ -261,6 +349,14 @@
     });
     P.addEventListener('change', e => {
       const t = e.target, c = cur();
+      if (t.dataset.font) { const fo = Object.assign({}, stNow(c).fonts || {}); if (t.value) fo[t.dataset.font] = t.value; else delete fo[t.dataset.font]; saveSt(c, { fonts: fo }, true); return; }
+      if (t.dataset.bfont) { const b = brandNow(c), fo = Object.assign({}, b.fonts || {}); if (t.value) fo[t.dataset.bfont] = t.value; else delete fo[t.dataset.bfont]; save({ brand: Object.assign({}, b, { fonts: fo }) }, true); return; }
+      if (t.dataset.drop === 'off') { const d = Object.assign({}, ST().drop || {}, stNow(c).drop || {}, { off: t.checked }); saveSt(c, { drop: d }, true); return; }
+      if (t.dataset.upimg !== undefined && t.files[0]) { const slot = S.slot; shrink(t.files[0], 1100, d => { const v = putImg(slot + '-up', d); if (v) pickPhoto(slot, v); }); return; }
+      if (t.dataset.brandimg && t.files[0]) { const k = t.dataset.brandimg; shrink(t.files[0], k === 'logo' ? 500 : 1100, d => { const b = brandNow(c);
+          if (k === 'gfx') { const n = (b.graphics || []).length; const v = putImg('gfx' + n + '-' + Date.now() % 1e5, d); if (v) save({ brand: Object.assign({}, b, { graphics: [...(b.graphics || []), { src: v, alt: 'Uploaded graphic', caption: 'Your upload' }] }) }, true); }
+          else { const v = putImg('brand-' + k, d); if (v) save({ brand: Object.assign({}, b, { [k]: v }) }, true); }
+          render(); toast('Added to the preview (stays in this browser)'); }); return; }
       if (t.dataset.tg) save({ section_toggles: Object.assign({}, c.section_toggles || {}, { [t.dataset.tg]: t.checked }) }, true);
       if (t.dataset.son !== undefined) { const L = c.sections.filter(s => allowedSet().has(s.id)); L[+t.dataset.son].on = t.checked; save({ sections: L }, true); }
       if (t.name === 'herobg') save({ hero_bg: t.value }, true);
@@ -277,6 +373,14 @@
     });
     P.addEventListener('click', e => {
       const b = e.target.closest('button,[data-ra]'); if (!b) return; const c = cur();
+      if (b.dataset.look) { save({ look: b.dataset.look }, true); S.pvLook = ''; render(); toast(b.dataset.look === 'art' ? 'Art-matched Look' : b.dataset.look === 'studio' ? 'Studio Look · pick a style below' : 'My brand Look · add your logo and header'); return; }
+      if (b.dataset.lkprev !== undefined) { S.pvLook = b.dataset.lkprev; render(); return; }
+      if (b.dataset.preset) { saveSt(c, { preset: b.dataset.preset }, true); $$('.pre').forEach(x => x.classList.toggle('on', x === b)); render(); return; }
+      if (b.dataset.slot) { S.slot = b.dataset.slot; const L = $('#plib'); if (L) { L.hidden = false; $('#plibt').textContent = 'Choose a photo for: ' + (b.querySelector('small') ? b.querySelector('small').textContent : 'flyer ' + (+b.dataset.slot.slice(1) + 1)); L.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } return; }
+      if (b.dataset.pick) { pickPhoto(S.slot, b.dataset.pick); return; }
+      if (b.dataset.act === 'plibx') { $('#plib').hidden = true; return; }
+      if (b.dataset.rmgfx !== undefined) { const bb = brandNow(c), G = [...(bb.graphics || [])]; G.splice(+b.dataset.rmgfx, 1); save({ brand: Object.assign({}, bb, { graphics: G }) }, true); render(); return; }
+      if (b.dataset.act === 'streset') { saveSt(c, { colors: null, fonts: null }, true); render(); return; }
       if (b.dataset.mv) { const L = c.sections.filter(s => allowedSet().has(s.id)), i = +b.dataset.i, j = i + +b.dataset.mv; if (j < 0 || j >= L.length) return; [L[i], L[j]] = [L[j], L[i]]; save({ sections: L }, true); render(); }
       if (b.dataset.act === 'addsec') { const id = $('#addsec').value, L = c.sections.filter(s => allowedSet().has(s.id)); L.push({ id, on: true }); save({ sections: L }, true); render(); toast(`${D.sections[id]} added`); }
       if (b.dataset.act === 'addlink') { save({ links: [...(c.links || []), { platform: 'instagram', url: 'https://instagram.com/PLACEHOLDER' }] }, true); render(); }
@@ -314,9 +418,15 @@
       box.addEventListener('dragstart', e => e.preventDefault());
     }
   }
+  function pickPhoto(slot, v) {
+    const c = cur(); if (!slot) return;
+    if (slot[0] === 'f' && slot !== 'cover') { const L = JSON.parse(JSON.stringify(stNow(c).categories || ST().categories || [])); const i = +slot.slice(1); if (L[i]) { L[i].photo = v; saveSt(c, { categories: L }, true); } }
+    else { const P = Object.assign({}, c.photos || {}); if (slot[0] === 'g') { const G = [...(P.gallery || [])]; G[+slot.slice(1)] = v; P.gallery = G; } else P[slot] = v; save({ photos: P }, true); }
+    render(); toast('Photo swapped'); }
   function allowedSet() { const a = A(), rel = a.relevant; return new Set([...rel.core, ...rel.optional, ...(a.takes_bookings ? rel.bookings || [] : [])]); }
   document.addEventListener('click', e => {
-    const b = e.target.closest('[data-login],[data-t],[data-tab],[data-act=logout],[data-up],[data-close]'); if (!b) return;
+    const b = e.target.closest('[data-login],[data-t],[data-tab],[data-act=logout],[data-up],[data-close],[data-mode]'); if (!b) return;
+    if (b.dataset.mode) { S.mode = b.dataset.mode; render(); return; }
     if (b.dataset.close && e.target !== b && !e.target.closest('button[data-close]')) return;
     if (b.dataset.close) { b.closest('.modal').remove(); return; }
     if (b.dataset.login) { S.acct = b.dataset.login; S.tier = D.accounts[S.acct].defaultTier; S.tab = 'editor'; render(); toast('Signed in (demo, no real login)'); }

@@ -11,5 +11,7 @@
 .tier-switcher-seg a.tier-switcher-seg-cmp[aria-current=page]{background:#ffd23f;color:#1a1208;border-radius:999px}
 .tier-switcher-seg.vrow{width:min(330px,100%);padding:3px}.tier-switcher-seg.vrow a{padding:6px 4px;font-size:10.5px}
 .tier-switcher-seg.vrow a[aria-current=page]{background:#f4eef1;color:#1a1208}
+.tier-switcher-seg.lrow{width:min(400px,100%);padding:3px;align-items:center}.tier-switcher-seg.lrow span{font:800 9.5px/1 Outfit,system-ui;letter-spacing:.14em;text-transform:uppercase;color:#8d8488;padding:0 8px 0 10px}
+.tier-switcher-seg.lrow a{padding:7px 4px;font-size:10.5px}.tier-switcher-seg.lrow a[aria-current=page]{background:linear-gradient(135deg,#ffe3ef,#f4b6cf);color:#2a0f22}
 body.has-tier-switcher{padding-bottom:calc(var(--tier-switch-h,60px) + 30px)!important}
 body.has-tier-switcher .demo-banner,body.has-tier-switcher .banner{bottom:var(--tier-switch-h,60px);padding-bottom:6px;z-index:199}

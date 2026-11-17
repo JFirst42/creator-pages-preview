@@ -7,8 +7,15 @@
   /* Creator hub live preview (?hub=1): the hub editor writes overrides to localStorage; only whitelisted content keys apply.
      Tier features (cfg.features) can never be changed from here. */
   const HUB = qs.has('hub');
-  const HUB_KEYS = ['title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture', 'tip_saying', 'music', 'accent'];
-  if (HUB) { try { const o = JSON.parse(localStorage.getItem('cp-hub-' + (cfg.hub_key || cfg.slug)) || 'null'); if (o) HUB_KEYS.forEach(k => { if (o[k] !== undefined && o[k] !== null) cfg[k] = o[k]; }); } catch (e) {} }
+  const HUB_KEYS = ['title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture', 'tip_saying', 'music', 'accent', 'look', 'studio', 'brand', 'drop', 'photos'];
+  if (HUB) { try { const o = JSON.parse(localStorage.getItem('cp-hub-' + (cfg.hub_key || cfg.slug)) || 'null'); if (o) HUB_KEYS.forEach(k => { if (o[k] !== undefined && o[k] !== null) cfg[k] = (k === 'studio' || k === 'brand') && cfg[k] ? Object.assign({}, cfg[k], o[k]) : o[k]; }); } catch (e) {} }
+  /* hub photo swaps: 'local:<slot>' points at a downscaled upload kept in this browser (demo); anything else is a page-relative path */
+  const HKEY = cfg.hub_key || cfg.slug; const resImg = v => typeof v === 'string' && v.startsWith('local:') ? (localStorage.getItem('cp-hub-img-' + HKEY + '-' + v.slice(6)) || '') : v;
+  if (HUB) { const P = cfg.photos || {}; if (P.cover) cfg.cover = resImg(P.cover) || cfg.cover; if (P.banner) cfg.studio = Object.assign({}, cfg.studio, { banner_photo: resImg(P.banner) });
+    if (P.gallery && cfg.gallery) cfg.gallery = cfg.gallery.map((g, i) => P.gallery[i] ? Object.assign({}, g, { src: resImg(P.gallery[i]) || g.src }) : g);
+    if (cfg.brand) ['logo', 'header'].forEach(k => { if (cfg.brand[k]) cfg.brand = Object.assign({}, cfg.brand, { [k]: resImg(cfg.brand[k]) }); });
+    if (cfg.studio && cfg.studio.categories) cfg.studio = Object.assign({}, cfg.studio, { categories: cfg.studio.categories.map(k => k.photo ? Object.assign({}, k, { photo: resImg(k.photo) }) : k) });
+    if (cfg.brand && cfg.brand.graphics) cfg.brand = Object.assign({}, cfg.brand, { graphics: cfg.brand.graphics.map(g => Object.assign({}, g, { src: resImg(g.src) })) }); }
   const EXPAND = qs.has('expand');          // render every tab panel stacked (for review/screenshots)
   const STATIC = qs.has('static');          // freeze motion (for still screenshots)
   const root = document.documentElement;
@@ -21,7 +28,13 @@
     if (po.acc) { const n = parseInt(po.acc.slice(1), 16), L = (((n >> 16) & 255) * .299 + ((n >> 8) & 255) * .587 + (n & 255) * .114); root.style.setProperty('--on-acc', L > 150 ? '#0b0b0f' : '#ffffff'); } }
   if (cfg.theme_mode === 'light') root.dataset.theme = 'light';
   if (cfg.vertical) root.dataset.vertical = cfg.vertical;
-  const GOLD = !!F.cinematicHero;
+  /* ---------- round 5: Looks. Gold: art | studio | brand. Silver: may preview studio (locked). ?look= is the demo switcher. ---------- */
+  const LOOKS = F.looks ? ['art', 'studio', 'brand'] : F.studioPreview ? ['art', 'studio'] : ['art'];
+  let LOOK = LOOKS.includes(cfg.look) ? cfg.look : 'art'; if (LOOKS.includes(qs.get('look'))) LOOK = qs.get('look');
+  const SKIN = LOOK !== 'art' && !!window.CPStudio; const STUDIO_LOCKED = SKIN && !F.looks;
+  root.dataset.looks = LOOKS.join(','); root.dataset.lookNow = LOOK;
+  if (SKIN) window.CPStudio.apply(cfg, root, LOOK); else root.dataset.look = 'art';
+  const GOLD = !!F.cinematicHero && !SKIN;
   /* ---------- round 4: music (none | upload | link), theme motion accent, custom tip saying ----------
      No music = no sound bars anywhere: the hero gets a motion accent that fits the trade instead (accents.js). */
   if (HUB && cfg.music && cfg.music.mode === 'upload' && cfg.music.local) { try { const d = localStorage.getItem('cp-hub-audio-' + (cfg.hub_key || cfg.slug)); if (d) cfg.music.src = d; } catch (e) {} }
@@ -53,7 +66,7 @@
     try { (window.dataLayer = window.dataLayer || []).push(d); document.dispatchEvent(new CustomEvent('cp:track', { detail: d }));
       const k = 'cp-stats-' + (cfg.hub_key || cfg.slug), st = JSON.parse(localStorage.getItem(k) || '{}'), key = ev + (data && (data.method || data.id || data.platform) ? ':' + (data.method || data.id || data.platform) : '');
       st[key] = (st[key] || 0) + 1; localStorage.setItem(k, JSON.stringify(st)); } catch (e) {} };
-  window.CP = { cfg, F, STATIC, EXPAND, qs, track, MUSIC, ACCENT, cleanSaying };
+  window.CP = { cfg, F, STATIC, EXPAND, qs, track, MUSIC, ACCENT, cleanSaying, LOOK };
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const icon = (k, fill) => {
@@ -190,6 +203,7 @@
     } catch (e) {} return [null, 0];
   }
   function hero() {
+    if (SKIN) return window.CPStudio.hero({ cfg, look: LOOK, heroCTA, PORT, provider });
     if (GOLD) return goldHero();
     const rs = releaseState();
     const streamer = cfg.layout === 'streamer';
@@ -340,7 +354,7 @@
   }
   function merch() {
     if (!F.merch || !cfg.merch) return F.merch ? storeButtons() : '';
-    if (F.merch3D) return goldShop();
+    if (F.merch3D && !SKIN) return goldShop();
     return sec(esc(cfg.merch_heading || 'Merch'), esc(cfg.merch_note || `Opens ${storeName()}`), `<div class="grid2">${cfg.merch.map((m, i) => `<a class="prod" href="${esc(storeUrl(m))}" target="_blank" rel="noopener" data-link="${esc((cfg.store && cfg.store.platform) || 'shop')}"><div class="pimg" style="background:linear-gradient(160deg,${['var(--dom)', 'var(--acc2)', 'var(--acc)', 'var(--bg2)'][i % 4]},var(--bg))">${m.tag ? `<span class="tag">${esc(m.tag)}</span>` : ''}<img src="${esc(cfg.cover || 'cover.jpg')}" alt=""></div><div class="pinfo"><p>${esc(m.name)}</p><div><span class="view">View ↗</span></div></div></a>`).join('')}</div>${storeButtons()}`);
   }
 
@@ -586,8 +600,13 @@
     flash: ['Flash', () => flash()],
     location: ['Visit', () => locationBlock() + policies()],
     igfeed: ['Instagram', () => igFeed()],
-    bookform: ['Book', () => bookingBlock()]
+    bookform: ['Book', () => bookingBlock()],
+    drop: [((cfg.drop || (cfg.studio || {}).drop || {}).kicker) || 'Drop', () => S5('drop')],
+    flyers: [PORT ? 'Menu' : 'Spotlight', () => S5('flyers')],
+    infocards: ['Good to know', () => S5('infocards')],
+    brandblocks: ['From the studio', () => S5('brandblocks')]
   };
+  function S5(k) { return F.studioModules && window.CPStudio ? window.CPStudio[k]({ cfg, look: LOOK, PORT, provider }) : ''; }
   /* Bronze + Silver use a fixed preset (tabs group several sections). Silver may hide a couple (SILVER_TOGGLES). Gold: cfg.sections. */
   const PRESETS = {
     single: [['Music', ['music', 'lyrics', 'credits']], ['Video', ['videos']], ['Merch', ['merch', 'tip']], ['Shows', ['shows']], ['Press', ['presskit', 'booking']], ['Join', ['fans']]],
@@ -604,13 +623,14 @@
     creator: { core: ['videos', 'merch', 'tip', 'fans'], optional: ['story', 'presskit', 'faq', 'testimonials', 'custom', 'music'], bookings: ['booking'] },
     streamer: { core: ['schedule', 'videos', 'tip', 'merch', 'fans'], optional: ['presskit', 'story', 'faq', 'testimonials', 'custom'], bookings: ['booking'] },
     tattoo: { core: ['portfolio', 'flash', 'services', 'bookform', 'location', 'testimonials', 'igfeed', 'tip'], optional: ['story', 'faq', 'custom', 'videos', 'merch'] },
+    nail: { core: ['portfolio', 'beforeafter', 'services', 'bookform', 'location', 'testimonials', 'igfeed', 'tip'], optional: ['story', 'faq', 'custom', 'videos'] },
     lash: { core: ['portfolio', 'beforeafter', 'services', 'bookform', 'location', 'testimonials', 'igfeed', 'tip'], optional: ['story', 'faq', 'custom', 'videos'] },
     hair: { core: ['portfolio', 'beforeafter', 'services', 'bookform', 'location', 'testimonials', 'igfeed', 'tip'], optional: ['story', 'faq', 'custom', 'videos', 'merch'] },
     barber: { core: ['portfolio', 'beforeafter', 'services', 'bookform', 'location', 'testimonials', 'igfeed', 'tip'], optional: ['story', 'faq', 'custom', 'videos', 'merch'] },
     art: { core: ['portfolio', 'igfeed', 'tip', 'testimonials'], optional: ['story', 'faq', 'custom', 'videos', 'merch', 'shows'], bookings: ['services', 'bookform', 'location'] }
   };
   const REL = RELEVANT[VERT] || RELEVANT.music;
-  const ALLOWED = new Set([...REL.core, ...REL.optional, ...(cfg.takes_bookings ? (REL.bookings || []) : [])]);
+  const ALLOWED = new Set([...REL.core, ...REL.optional, ...(cfg.takes_bookings ? (REL.bookings || []) : []), ...(F.studioModules ? ['drop', 'flyers', 'infocards', 'brandblocks'] : [])]);
   window.CP_SECTIONS = { relevant: RELEVANT, vertical: VERT, allowed: [...ALLOWED], ids: Object.keys(SEC), names: Object.fromEntries(Object.entries(SEC).map(([k, v]) => [k, v[0]])), presets: PRESETS, silverToggles: SILVER_TOGGLES };
   function panelsFor() {
     const lay = PRESETS[cfg.layout] ? cfg.layout : 'single';
@@ -648,6 +668,7 @@
   function tabbed() {
     const P = panelsFor();
     if (!P.length) return '';
+    if (SKIN) return P.map((p, i) => window.CPStudio.frame(p[0], p[1], p[2], i)).join('');
     if (F.sceneTransitions) {
       const g = T.grades || [];
       return P.map((p, i) => `<section class="scene" data-name="${esc(p[0])}" data-sec="${esc(p[2] || '')}" data-grade="${g[i % g.length] || ''}" data-grade2="${g[(i + 2) % g.length] || ''}" style="--scene-c:${g[i % g.length] || 'var(--acc)'}">
@@ -665,10 +686,12 @@
     ${isLive ? `<div class="g-live"><span class="dot"></span><span class="mq"><span>LIVE NOW · ${esc(cfg.live.title || '')}${cfg.live.viewers ? ` · ${esc(cfg.live.viewers)} watching` : ''} · tap to jump in ·</span></span><a href="#" data-link="twitch">Watch</a></div>` : ''}
     <div class="g-intro"><div>${wordmark(cfg.title, 'aria-hidden="true"')}<small>${esc(T.intro_line || 'loading the world')}</small></div></div>` : '';
   if (goldOuter) document.body.insertAdjacentHTML('afterbegin', goldOuter);
+  if (STUDIO_LOCKED) document.body.insertAdjacentHTML('afterbegin', '<div class="st-lock">Studio Looks are a&nbsp;<b>Gold</b>&nbsp;option · preview only</div>');
   if (cfg.demo_banner) document.body.insertAdjacentHTML('afterbegin', `<div class="demo-banner">${esc(cfg.demo_banner)}${HUB ? ' · hub preview' : ''}</div>`);
   app.innerHTML = goldChrome + topbar() + hero() + musicDock() + featured() + links() + socials() + countdownCard() + tabbed() + qrCard() + analytics() + footer();
   // Bronze: QR sits right after links (it's the only extra). Above order already handles that.
 
+  if (window.CPStudio) window.CPStudio.wire();
   if (qs.get('scroll')) requestAnimationFrame(() => scrollTo(0, +qs.get('scroll')));
   /* ---------- behaviors ---------- */
   // countdowns

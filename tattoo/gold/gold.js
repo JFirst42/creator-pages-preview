@@ -2,6 +2,7 @@
    scroll scenes + section grading, era coverflow, 3D merch, tap/cursor effects, signature motion. */
 (function () {
   const CP = window.CP; if (!CP) return;
+  if (CP.LOOK && CP.LOOK !== 'art') return; // Studio / My brand looks are calm boutique skins: no cinematic layer
   const { cfg, STATIC, EXPAND } = CP;
   const root = document.documentElement;
   const sig = cfg.theme.signature || 'sparkle';

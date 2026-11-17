@@ -458,3 +458,8 @@ html[data-theme=light]{color-scheme:light}
 .md-embed{margin:-6px 0 14px}.md-embed iframe{width:100%;border:0;border-radius:14px;display:block}
 .md-slot{padding:22px 16px;border-radius:14px;border:1px dashed var(--line);text-align:center;font-weight:700;font-size:13.5px}.md-slot small{display:block;font-weight:500;color:var(--muted);margin-top:4px}
 [data-theme=light] .mdock{background:#fff}
+/* round 5: keep the top bar inside 390px phones (long tip sayings no longer push the page wide) */
+.top-actions{min-width:0;flex:0 1 auto}.tip-chip{min-width:0;flex:0 1 auto}
+@media(max-width:430px){.tip-chip .tc-t{max-width:98px}}
+@media(max-width:380px){.tip-chip .tc-t{max-width:80px}}
+html,body{overflow-x:clip}
