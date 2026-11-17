@@ -186,3 +186,4 @@ html[data-herobg=video] .g-layer.mid,html[data-herobg=video] .g-layer.fg{opacity
 /* round 6: scroll scenes reveal with motion only (full-opacity text keeps AA contrast at every scroll position) */
 .scene{opacity:1;filter:none}
 .g-live{background:linear-gradient(90deg,#c8102f,#a30f50 60%,#6a17c0)}
+.g-frame .chip span{background:#c8102f}

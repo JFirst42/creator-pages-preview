@@ -477,3 +477,5 @@ html,body{overflow-x:clip}
 @media(max-width:380px){.tip-chip .tc-t{max-width:92px}}
 .topbar{height:44px}
 .sample-pill{white-space:nowrap}
+.feat-card.live .fc-go{background:#c8102f}
+.tix{min-height:44px;height:auto;color:var(--text);border-color:var(--acc)}

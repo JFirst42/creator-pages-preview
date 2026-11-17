@@ -106,3 +106,4 @@ html[data-look] .st-hero:has(.st-banner.is-upload){margin-top:4px;margin-left:-4
 .st-wm-t{margin:0}.st-h1{margin:0;font-size:inherit;line-height:0}
 .st-logo{width:auto;height:auto}
 .st-fly-bk{background:var(--acc);color:var(--on-acc,#fff);border-color:var(--acc);min-height:44px!important;display:inline-flex;align-items:center;justify-content:center;padding:0 16px}
+html:not([data-look]) .st-card-h h3,html[data-look=art] .st-card-h h3{color:color-mix(in srgb,var(--acc) 55%,var(--text))}
