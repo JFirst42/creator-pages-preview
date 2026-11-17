@@ -161,3 +161,13 @@ html.freeze .g-live .mq span{padding-left:0;animation:none}
 .g-audio.on b::after{margin:0;border:0;width:7px;height:8px;border-left:2px solid currentColor;border-right:2px solid currentColor}
 .g-audio em{font-style:normal;font-weight:500;opacity:.6;font-size:10px}
 .g-copy{display:flex;flex-direction:column;align-items:center}
+/* hero background option */
+.g-vid{position:absolute;inset:0;opacity:0;transition:opacity .6s;z-index:0}
+.g-vid canvas,.g-vid video{width:100%;height:100%;display:block;object-fit:cover}
+.g-vidlbl{position:absolute;right:14px;top:112px;font:700 9.5px/1 var(--font-body);letter-spacing:.12em;text-transform:uppercase;padding:5px 8px;border-radius:6px;background:rgba(0,0,0,.45);color:rgba(255,255,255,.8)}
+html[data-herobg=video] .g-vid{opacity:1}
+html[data-herobg=video] .g-layer.mid,html[data-herobg=video] .g-layer.fg{opacity:0;transition:opacity .5s}
+.g-layer.mid,.g-layer.fg{transition:opacity .5s}
+.g-bgt{position:absolute;right:14px;top:72px;z-index:6;display:flex;padding:3px;border-radius:99px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(10px)}
+.g-bgt button{height:26px;padding:0 10px;border-radius:99px;border:0;background:transparent;color:rgba(255,255,255,.75);font:800 11px/1 var(--font-body);cursor:pointer}
+.g-bgt button.on{background:#fff;color:#111}

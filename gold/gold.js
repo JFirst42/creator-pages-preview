@@ -179,6 +179,45 @@
   }
   requestAnimationFrame(frame);
 
+
+  /* ---------- hero background option: cover art 3D (depth layers) vs video / animated canvas loop ---------- */
+  (function heroBg() {
+    const box = document.querySelector('.g-vid'); if (!box) return;
+    const btns = document.querySelectorAll('.g-bgt [data-bg]'); const vid = box.querySelector('video'); const cv = box.querySelector('canvas');
+    const img = new Image(); img.src = cfg.cover || 'cover.jpg'; let on = false, raf = 0;
+    const g = (cfg.theme.grades || [pal.acc, pal.acc2]);
+    function frame(t) {
+      if (!on) return; const r = box.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 1.5);
+      if (cv.width !== Math.round(r.width * d)) { cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); }
+      const x = cv.getContext('2d'), W = cv.width, H = cv.height, b = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--beat')) || 0;
+      x.fillStyle = pal.bg; x.fillRect(0, 0, W, H);
+      if (img.naturalWidth) {  // slow push-in + pan, like a music-video loop
+        const z = 1.18 + .1 * Math.sin(t / 5200) + b * .03, s = Math.max(W / img.naturalWidth, H * .78 / img.naturalHeight) * z;
+        const dw = img.naturalWidth * s, dh = img.naturalHeight * s, px = (W - dw) / 2 + Math.sin(t / 3900) * W * .06, py = (H * .74 - dh) / 2 + Math.cos(t / 4700) * H * .025;
+        x.drawImage(img, px, py, dw, dh);
+        for (let i = 0; i < 3; i++) {  // beat glitch slices
+          if (Math.sin(t / 90 + i * 7) > .93 - b * .25) { const y = (Math.sin(t / 310 + i * 3) * .5 + .5) * H * .7, h = H * (.01 + .02 * Math.abs(Math.sin(t / 50 + i))); x.drawImage(cv, 0, y, W, h, (Math.sin(t + i) * .5) * W * .04, y, W, h); }
+        }
+      }
+      x.globalCompositeOperation = 'screen';
+      for (let i = 0; i < 3; i++) {  // light leaks in the art's palette
+        const cx = W * (.5 + .55 * Math.sin(t / (2600 + i * 900) + i * 2)), cy = H * (.3 + .3 * Math.cos(t / (3100 + i * 700) + i));
+        const rg = x.createRadialGradient(cx, cy, 0, cx, cy, W * .7); rg.addColorStop(0, g[i % g.length] + '66'); rg.addColorStop(1, 'transparent'); x.fillStyle = rg; x.fillRect(0, 0, W, H);
+      }
+      x.globalCompositeOperation = 'source-over'; x.fillStyle = 'rgba(0,0,0,.18)'; for (let y = (t / 40) % 4; y < H; y += 4 * d) x.fillRect(0, y, W, d * .6);
+      if (live) raf = requestAnimationFrame(frame);
+    }
+    function set(mode, user) {
+      on = mode === 'video'; document.documentElement.dataset.herobg = on ? 'video' : 'art3d';
+      btns.forEach(b => b.classList.toggle('on', b.dataset.bg === (on ? 'video' : 'art3d')));
+      cancelAnimationFrame(raf); if (vid) { on ? vid.play().catch(() => {}) : vid.pause(); } else if (on) { img.complete ? frame(performance.now()) : (img.onload = () => frame(performance.now())); }
+      if (user) { try { sessionStorage.setItem('cp-herobg-' + cfg.slug, document.documentElement.dataset.herobg); } catch (e) {} }
+    }
+    btns.forEach(b => b.addEventListener('click', () => set(b.dataset.bg, true)));
+    let start = CP.qs.get('bg'); try { start = start || sessionStorage.getItem('cp-herobg-' + cfg.slug); } catch (e) {}
+    set(start || cfg.hero_bg || 'art3d');
+  })();
+
   /* ---------- 3D merch cards ---------- */
   document.querySelectorAll('.g-prod').forEach((c, i) => {
     c.addEventListener('pointermove', e => { const r = c.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5; c.style.setProperty('--ry', `${x * 18}deg`); c.style.setProperty('--rx', `${-y * 14}deg`); c.style.setProperty('--sx', `${(x + .5) * 100}%`); c.style.setProperty('--sy', `${(y + .5) * 100}%`); c._h = performance.now(); });

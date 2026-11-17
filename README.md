@@ -1,25 +1,14 @@
 # Creator pages preview (demo)
 
-Private-style **demo preview** of a Holy Hails “No Heart” landing page at three tiers (Bronze, Silver, Gold), plus a Gold variant with “latest video” featured first.
+Demo preview of a Holy Hails "No Heart" landing page at three tiers: **Bronze, Silver, Gold**. Not a production site. All streaming, merch, tip and social links are placeholders. Every page is `noindex`, `robots.txt` blocks all crawlers, and each page carries a "Demo / preview" banner.
 
-This is **not** a production product. Streaming, merch, tip, and social links are **placeholders**. Do not treat this as a live artist site.
+- `/` opens Gold full screen. The bottom switcher goes to Bronze | Silver | Gold | Compare.
+- **Video is a Gold option, not a tier.** The Gold hero has a 3D art | Video toggle; `?bg=video` opens it in video mode. `/gold-video/` redirects to `/gold/?bg=video`.
+- **Share** (top right on every page) opens the share sheet:
+  - Bronze: copy link, social links and one default story card.
+  - Silver: the share studio (choose what to share + story / post / link-card templates).
+  - Gold: branded templates, an animated story video and analytics hooks.
+- Instagram doesn't let a web page put a tappable link into a Story. The flow is: share the image to your Story, then add a Link sticker (the page copies the link for you).
+- Each tier has Open Graph / Twitter meta and a pre-rendered `og.png` (1200x630), so pasted links show a card.
 
-The preview is marked `noindex` and `robots.txt` disallows all crawlers.
-
-## View it
-
-After GitHub Pages is enabled, the site root opens the **Gold** page full-screen. A floating control at the bottom switches tiers instantly:
-
-- Bronze
-- Silver
-- Gold
-- Gold·Video (same Gold layout, feature-first = latest video)
-
-Use **Compare side by side** to see all four phones on one page.
-
-## Local files
-
-- `index.html` — Gold full-screen landing (assets loaded from `gold/`)
-- `bronze/`, `silver/`, `gold/`, `gold-video/` — each tier
-- `compare.html` — side-by-side comparison
-- `switcher.js` / `switcher.css` — the persistent tier switcher
+Built from `/workspace/creator-pages` with `generator/build_preview.py`.

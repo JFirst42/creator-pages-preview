@@ -37,7 +37,7 @@
     return `<div class="topbar">
       <div class="top-actions"><span class="tier-pill ${esc(cfg.tier)}"><span class="medal"></span>${esc(t.label)} tier</span>
       ${cfg.sample ? '<span class="sample-pill">Sample data</span>' : '<span class="sample-pill">Demo</span>'}</div>
-      ${F.shareCard ? `<button class="icon-btn" data-act="share" aria-label="Share"><svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></button>` : ''}
+      ${F.shareBasic !== false ? `<button class="icon-btn" data-act="share" aria-label="Share"><svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></button>` : ''}
     </div>`;
   }
 
@@ -107,7 +107,9 @@
         <div class="g-layer bg" data-depth="-0.5"></div><div class="g-halo"></div>
         <div class="g-layer mid" data-depth="0.25"><img src="${esc(L.mid || cfg.cover || 'cover.jpg')}" alt=""></div>
         ${L.fg ? `<div class="g-layer fg" data-depth="0.9"><img src="${esc(L.fg)}" alt=""></div>` : ''}
+        ${F.heroVideoBg ? `<div class="g-vid">${cfg.hero_video ? `<video src="${esc(cfg.hero_video)}" muted loop playsinline preload="none" poster="${esc(cfg.cover || 'cover.jpg')}"></video>` : '<canvas></canvas>'}<span class="g-vidlbl">${cfg.hero_video ? 'Video loop' : 'Animated loop · video slot'}</span></div>` : ''}
         <div class="g-shade"></div></div>
+      ${F.heroVideoBg ? `<div class="g-bgt" role="group" aria-label="Hero background"><button type="button" data-bg="art3d">3D art</button><button type="button" data-bg="video">Video</button></div>` : ''}
       <div class="g-copy"><div class="g-kicker"><i></i>${esc(cfg.artist)}${cfg.feat ? ' · feat. ' + esc(cfg.feat) : ''}<i></i></div>
         ${wordmark(cfg.title)}
         <p class="g-sub">${state}${cfg.kind_label ? ' · ' + esc(cfg.kind_label) : ''}</p>
@@ -477,23 +479,7 @@
   });
 
   // story card (canvas → PNG)
-  function makeStory() {
-    const c = document.createElement('canvas'); c.width = 1080; c.height = 1920; const x = c.getContext('2d');
-    const css = getComputedStyle(root);
-    const g = x.createLinearGradient(0, 0, 0, 1920); g.addColorStop(0, css.getPropertyValue('--dom').trim()); g.addColorStop(1, css.getPropertyValue('--bg').trim());
-    x.fillStyle = g; x.fillRect(0, 0, 1080, 1920);
-    const img = new Image(); img.onload = () => {
-      x.save(); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 60; x.drawImage(img, 140, 380, 800, 800); x.restore();
-      x.fillStyle = css.getPropertyValue('--text').trim(); x.textAlign = 'center';
-      x.font = `800 84px ${css.getPropertyValue('--font-display')}`; x.fillText(cfg.title, 540, 1340, 960);
-      x.font = `600 44px ${css.getPropertyValue('--font-body')}`; x.fillStyle = css.getPropertyValue('--muted').trim(); x.fillText(cfg.artist || cfg.tagline || '', 540, 1420, 960);
-      x.fillStyle = css.getPropertyValue('--acc').trim(); x.beginPath(); x.roundRect(300, 1540, 480, 110, 55); x.fill();
-      x.fillStyle = css.getPropertyValue('--on-acc').trim(); x.font = `800 44px ${css.getPropertyValue('--font-body')}`; x.fillText('LINK IN BIO', 540, 1612);
-      try { c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${cfg.slug}-story.png`; a.click(); toast('Story card downloaded'); }); }
-      catch (err) { toast('Serve over http to download (file:// blocks canvas export)'); }
-    };
-    img.src = cfg.cover || 'cover.jpg';
-  }
+  function makeStory() { if (window.CPShare) window.CPShare.open(); }
 
   // scroll reveal (gold)
   function observeReveal() {
