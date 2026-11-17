@@ -190,7 +190,7 @@ html[data-motion-level=dynamic] .bp-hero-ph img{animation:bpKen 18s ease-in-out 
 @keyframes bpKen{from{scale:1}to{scale:1.1}}
 .bp-accent{position:absolute;left:12px;right:12px;bottom:12px;height:56px;width:calc(100% - 24px);z-index:3;pointer-events:none;--acc:#fff;--acc2:rgba(255,255,255,.75);--text:#fff;filter:drop-shadow(0 1px 4px rgba(0,0,0,.35))}
 html[data-bp=editorial] .bp-accent{top:12px;bottom:auto}
-html[data-motion-level=dynamic] .bp-rv{transform:translateY(40px) scale(.97);transition-duration:1s}
+html[data-motion-level=dynamic] .bp-rv{transform:translateY(40px);transition-duration:1s}
 html[data-motion-level=dynamic] .bp-rv.bp-in{transform:none}
 html[data-motion-level=dynamic] .bp-gal figure{transition:clip-path 1.1s cubic-bezier(.2,.7,.2,1),transform .5s;clip-path:inset(0 0 100% 0)}
 html[data-motion-level=dynamic] .bp-rv.bp-in .bp-gal figure{clip-path:inset(0)}
