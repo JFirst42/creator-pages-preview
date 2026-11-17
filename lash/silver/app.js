@@ -145,7 +145,7 @@
     return `<div class="hcta${reveal}" data-feature="${esc(FEATURE)}">${main}${chips}</div>`;
   }
 
-  function audioMini() { return HAS_AUDIO ? `<button class="g-audio" data-act="music" aria-label="Play ${esc(MUSIC.title)}"><b></b><span>Play</span><em>${esc(MUSIC.title)}</em></button>` : ''; }
+  function audioMini() { return HAS_AUDIO ? `<button class="g-audio" data-act="music"><b></b><span>Play</span><em>${esc(MUSIC.title)}</em></button>` : ''; }
   // Gold hero bottom strip: real-audio visualizer only when an uploaded track exists; otherwise the trade's motion accent (or nothing)
   const gStrip = () => HAS_AUDIO ? '<canvas class="g-viz" aria-hidden="true"></canvas>' : ACCENT ? `<canvas class="g-accent" data-accent="${esc(ACCENT)}" aria-hidden="true"></canvas>` : '';
   const gMode = HAS_AUDIO ? 'has-viz' : ACCENT ? 'has-accent' : 'no-strip';
@@ -323,7 +323,7 @@
     if (!F.fanCapture) return '';
     const fc = cfg.fan_capture || {};
     return sec(esc(fc.heading || 'Get the drop first'), 'Fans stay yours', `<div class="card"><form class="form" data-form="fans">
-      <div class="seg" role="tablist"><button type="button" class="on" data-ch="email">Email</button><button type="button" data-ch="sms">Text me</button></div>
+      <div class="seg" role="group" aria-label="How to reach you"><button type="button" class="on" data-ch="email" aria-pressed="true">Email</button><button type="button" data-ch="sms" aria-pressed="false">Text me</button></div>
       <input aria-label="you@email.com" class="in" name="contact" type="email" placeholder="you@email.com" autocomplete="off" required>
       <button class="btn" type="submit">${esc(fc.cta || 'Notify me')}</button>
       <p class="fine">Demo form · saved only in this browser · real version syncs to your list with consent + unsubscribe</p>
@@ -372,7 +372,7 @@
     stripe: { name: 'Stripe link', icon: 'stripe', show: h => h.replace(/^https?:\/\//, ''), url: h => /^https:\/\//.test(h) ? h : `https://buy.stripe.com/${encodeURIComponent(h)}` }
   };
   const tipList = () => (cfg.tip_methods || []).filter(m => TIP[m.type] && m.handle && m.on !== false);
-  function tipChip() { return F.tipButton && tipList().length ? `<button class="tip-chip" data-act="tip" aria-label="Tip ${esc(cfg.artist || cfg.title)}"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-9.3-8.6C1.1 9.3 2.8 5.5 6.4 5.5c2.1 0 3.6 1.4 4.3 2.6h2.6c.7-1.2 2.2-2.6 4.3-2.6 3.6 0 5.3 3.8 3.7 6.9C19 16.6 12 21 12 21z"/></svg><span class="tc-t">${esc(TIP_SAYING || 'Tip')}</span></button>` : ''; }
+  function tipChip() { return F.tipButton && tipList().length ? `<button class="tip-chip" data-act="tip" aria-label="${esc(TIP_SAYING || 'Tip')} (tip ${esc(String(cfg.title || '').replace(/\s*\((sample|demo)\)\s*$/i, ''))})"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-9.3-8.6C1.1 9.3 2.8 5.5 6.4 5.5c2.1 0 3.6 1.4 4.3 2.6h2.6c.7-1.2 2.2-2.6 4.3-2.6 3.6 0 5.3 3.8 3.7 6.9C19 16.6 12 21 12 21z"/></svg><span class="tc-t">${esc(TIP_SAYING || 'Tip')}</span></button>` : ''; }
   function tipRows() {
     return tipList().map(m => { const T2 = TIP[m.type], I = (window.ICONS || {})[T2.icon]; const bg = I ? '#' + I.hex : 'var(--acc)';
       const ico = I ? icon(T2.icon, '#fff') : `<b>${esc(T2.name[0])}</b>`;
@@ -730,7 +730,7 @@
   // segmented controls
   document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    seg.querySelectorAll('button').forEach(x => { x.classList.toggle('on', x === b); if (x.hasAttribute('aria-pressed')) x.setAttribute('aria-pressed', String(x === b)); });
     if (b.dataset.ch) { const inp = seg.parentElement.querySelector('input[name=contact]'); inp.type = b.dataset.ch === 'sms' ? 'tel' : 'email'; inp.placeholder = b.dataset.ch === 'sms' ? '(555) 555-0123' : 'you@email.com'; }
   }));
 

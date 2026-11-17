@@ -142,10 +142,12 @@
     }
   }
 
+  let lastBeat = '', lastBeatT = -1e9;
   /* ---------- main loop ---------- */
   function frame(t) {
     const L = levels(t);
-    root.style.setProperty('--beat', L.low.toFixed(3));
+    /* round 6 (TBT): --beat restyles the page background + blurred art, so only push it when it really changes (every frame only while music plays) */
+    const bq = L.low.toFixed(playing ? 3 : 2); if (bq !== lastBeat && (playing || t - lastBeatT > 160)) { root.style.setProperty('--beat', bq); lastBeat = bq; lastBeatT = t; }
     if (performance.now() - lastInput > 2500) { px = Math.sin(t / 2300) * .55; py = Math.cos(t / 2900) * .35; }
     tx += (px - tx) * .08; ty += (py - ty) * .08;
     const sy = Math.min(scrollY, 900);
@@ -157,7 +159,9 @@
     drawViz(L); drawFx(t, L);
     if (live) requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame);
+  /* round 6 (LCP/TBT): ambient motion starts after the page has loaded, so first paint is not competing with the animation loop */
+  const startLoop = () => setTimeout(() => requestAnimationFrame(frame), 700);
+  if (document.readyState === 'complete') startLoop(); else addEventListener('load', startLoop, { once: true });
 
 
   /* ---------- hero background option: cover art 3D (depth layers) vs video / animated canvas loop ---------- */

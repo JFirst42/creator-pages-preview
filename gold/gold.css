@@ -182,3 +182,7 @@ html[data-herobg=video] .g-layer.mid,html[data-herobg=video] .g-layer.fg{opacity
 .g-hero.streamer .g-accent{position:relative;bottom:auto;height:48px;margin-top:10px}
 .g-chapter{transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s}
 .g-chapter:not(.on){opacity:0}
+
+/* round 6: scroll scenes reveal with motion only (full-opacity text keeps AA contrast at every scroll position) */
+.scene{opacity:1;filter:none}
+.g-live{background:linear-gradient(90deg,#c8102f,#a30f50 60%,#6a17c0)}
