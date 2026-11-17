@@ -102,3 +102,7 @@ html[data-look] .st-hero:has(.st-banner.is-upload){margin-top:4px;margin-left:-4
 .st-banner.is-upload+.st-mark-up+.st-under{padding-top:10px}
 
 .st-banner.is-plain{background:radial-gradient(120% 90% at 50% 0%,var(--bg2,var(--bg)),var(--bg) 70%)}
+/* ---- round 6 polish: one h1 on the wordmark, solid AA Book buttons, 44px targets ---- */
+.st-wm-t{margin:0}.st-h1{margin:0;font-size:inherit;line-height:0}
+.st-logo{width:auto;height:auto}
+.st-fly-bk{background:var(--acc);color:var(--on-acc,#fff);border-color:var(--acc);min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 16px}

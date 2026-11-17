@@ -74,7 +74,7 @@
     if (!i) return `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="${fill || 'currentColor'}"/></svg>`;
     return `<svg viewBox="0 0 24 24" role="img" aria-label="${esc(i.title)}"><path d="${i.path}"${fill ? ` fill="${fill}"` : ''}/></svg>`;
   };
-  const NAMES = { spotify: 'Spotify', apple_music: 'Apple Music', youtube: 'YouTube', amazon_music: 'Amazon Music', tidal: 'TIDAL', soundcloud: 'SoundCloud', twitch: 'Twitch', kick: 'Kick', tiktok: 'TikTok', instagram: 'Instagram', x: 'X', discord: 'Discord', cashapp: 'Cash App', paypal: 'PayPal', kofi: 'Ko-fi', shop: 'Merch store', shopify: 'Shopify', beatstars: 'BeatStars', bandcamp: 'Bandcamp', venmo: 'Venmo', zelle: 'Zelle', buymeacoffee: 'Buy Me a Coffee', stripe: 'Stripe', booksy: 'Booksy', square: 'Square', vagaro: 'Vagaro', glossgenius: 'GlossGenius', calendly: 'Calendly', googlemaps: 'Google Maps', email: 'Email' };
+  const NAMES = { spotify: 'Spotify', apple_music: 'Apple Music', youtube: 'YouTube', amazon_music: 'Amazon Music', tidal: 'TIDAL', soundcloud: 'SoundCloud', twitch: 'Twitch', kick: 'Kick', tiktok: 'TikTok', instagram: 'Instagram', x: 'X', discord: 'Discord', cashapp: 'Cash App', paypal: 'PayPal', kofi: 'Ko-fi', shop: 'Merch store', shopify: 'Shopify', beatstars: 'BeatStars', bandcamp: 'Bandcamp', venmo: 'Venmo', zelle: 'Zelle', buymeacoffee: 'Buy Me a Coffee', stripe: 'Stripe', booksy: 'Booksy', square: 'Square', vagaro: 'Vagaro', glossgenius: 'GlossGenius', calendly: 'Calendly', googlemaps: 'Google Maps', email: 'Email', release: 'Release', clip: 'Clip' };
   const VERB = { spotify: 'Play', apple_music: 'Play', youtube: 'Watch', amazon_music: 'Play', tidal: 'Play', soundcloud: 'Play', twitch: 'Watch', kick: 'Watch', tiktok: 'Follow', discord: 'Join', shop: 'Shop', shopify: 'Shop', beatstars: 'Beats', bandcamp: 'Shop', cashapp: 'Tip', paypal: 'Tip', kofi: 'Tip', booksy: 'Book', square: 'Book', vagaro: 'Book', glossgenius: 'Book', calendly: 'Book', googlemaps: 'Map' };
   const toast = msg => { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); };
   const reveal = F.microInteractions ? ' reveal' : '';
@@ -97,7 +97,7 @@
   }
 
   const letters = (s) => [...String(s)].map((c, i) => `<span class="ch" style="--i:${i}">${esc(c)}</span>`).join('');
-  function wordmark(text, extra) { return `<h1 class="wm fx-${esc(WM.effect || 'sticker')}" data-text="${esc(text)}" ${extra || ''}>${letters(text)}</h1>`; }
+  function wordmark(text, extra, tag) { tag = tag || 'h1'; return `<${tag} class="wm fx-${esc(WM.effect || 'sticker')}" data-text="${esc(text)}" ${extra || ''}>${letters(text)}</${tag}>`; }
   /* ---------- hero CTA: the creator's real platform links for whatever they chose to "feature first" ---------- */
   const PROVIDERS = [
     ['booksy', /booksy\.com/, 'Booksy', '#00a3ad', false], ['fresha', /fresha\.com/, 'Fresha', '#0e0e0e', false],
@@ -134,7 +134,7 @@
   function heroCTA() {
     const L = HERO_LINKS;
     if (!L.length) {
-      if (FEATURE === 'booking') return `<div class="hcta"><a class="hcta-main" href="#" data-act="scroll-book"><span class="hi" style="background:var(--acc)"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z M4 7l8 6 8-6" fill="none" stroke="#fff" stroke-width="2"/></svg></span><span class="ht"><small>Booking</small>Book ${esc(cfg.artist || cfg.title)}</span><span class="hgo">→</span></a></div>`;
+      if (FEATURE === 'booking') return `<div class="hcta"><a class="hcta-main" href="#book" data-act="scroll-book"><span class="hi" style="background:var(--acc)"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z M4 7l8 6 8-6" fill="none" stroke="#fff" stroke-width="2"/></svg></span><span class="ht"><small>Booking</small>Book ${esc(cfg.artist || cfg.title)}</span><span class="hgo">→</span></a></div>`;
       return '';
     }
     const ib = p => { const I = (window.ICONS || {})[p]; const pc = (L.find(x => x.platform === p) || {}).color; if (!I) return { bg: pc || 'var(--acc)', ico: `<b style="color:#fff">${esc((p || '?')[0].toUpperCase())}</b>` }; const n = parseInt(I.hex, 16); const dark = (((n >> 16) & 255) * .299 + ((n >> 8) & 255) * .587 + (n & 255) * .114) < 40; return { bg: dark ? '#fff' : '#' + I.hex, fg: dark ? '#000' : '#fff', ico: icon(p) }; };
@@ -169,8 +169,8 @@
     const cta = heroCTA();
     return `<section class="g-hero ${gMode}"><div class="g-stage">
         <div class="g-layer bg" data-depth="-0.5"></div><div class="g-halo"></div>
-        <div class="g-layer mid" data-depth="0.25"><img src="${esc(L.mid || cfg.cover || 'cover.jpg')}" alt=""></div>
-        ${L.fg ? `<div class="g-layer fg" data-depth="0.9"><img src="${esc(L.fg)}" alt=""></div>` : ''}
+        <div class="g-layer mid" data-depth="0.25"><img src="${esc(L.mid || cfg.cover || 'cover.jpg')}" alt="" fetchpriority="high" decoding="async" width="1100" height="1100"></div>
+        ${L.fg ? `<div class="g-layer fg" data-depth="0.9"><img data-src="${esc(L.fg)}" alt="" decoding="async" width="1100" height="1100"></div>` : ''}
         ${F.heroVideoBg ? `<div class="g-vid">${cfg.hero_video ? `<video src="${esc(cfg.hero_video)}" muted loop playsinline preload="none" poster="${esc(cfg.cover || 'cover.jpg')}"></video>` : '<canvas></canvas>'}<span class="g-vidlbl">${cfg.hero_video ? 'Video loop' : 'Animated loop · video slot'}</span></div>` : ''}
         <div class="g-shade"></div></div>
       ${F.heroVideoBg ? `<div class="g-bgt" role="group" aria-label="Hero background"><button type="button" data-bg="art3d">3D art</button><button type="button" data-bg="video">Video</button></div>` : ''}
@@ -286,10 +286,12 @@
     return sec('Listen here', 'Spotify / Apple embed slot', `<div class="card"><div class="player"><img src="${esc(cfg.cover || 'cover.jpg')}" alt=""><div class="bar"><b style="font-size:14px">${esc(cfg.title)}</b><div class="muted" style="font-size:12px;margin:0">${esc(cfg.artist)}${cfg.feat ? ', ' + esc(cfg.feat) : ''}</div><div><i></i></div></div><span class="pbtn"></span></div></div>`);
   }
 
+  /* release / clip cards link to the release's own URL, else the creator's main link (placeholder in demos); never href="#" */
+  function relUrl(r) { const L = cfg.links || []; return r.url || (L.find(l => l.primary) || L[0] || {}).url || cfg.page_url || 'https://example.com/placeholder'; }
   function eras() {
     const g = T.grades || [];
-    const list = [{ title: cfg.title, sub: cfg.layout === 'streamer' ? 'Latest highlight' : 'Out now', art: 'cover.jpg' }, ...(cfg.releases || [])];
-    return `<div class="eras">${list.map((r, i) => `<a class="era" href="#" style="--ec:${g[(i + 1) % g.length] || 'var(--acc)'};--ec2:${g[(i + 2) % g.length] || 'var(--acc2)'}">
+    const list = [{ title: cfg.title, sub: cfg.layout === 'streamer' ? 'Latest highlight' : 'Out now', art: cfg.cover || 'cover.jpg' }, ...(cfg.releases || [])];
+    return `<div class="eras">${list.map((r, i) => `<a class="era" href="${esc(relUrl(r))}" target="_blank" rel="noopener" data-link="${cfg.layout === 'streamer' ? 'clip' : 'release'}" style="--ec:${g[(i + 1) % g.length] || 'var(--acc)'};--ec2:${g[(i + 2) % g.length] || 'var(--acc2)'}">
       <div class="eart${r.art ? '' : ' gen'}" ${r.art ? `style="background-image:url('${esc(r.art)}')"` : `data-t="${esc(r.title)}"`}></div><span class="eplay"></span>
       <div class="einfo"><small>${cfg.layout === 'streamer' ? 'Clip' : 'Era'} ${String(i + 1).padStart(2, '0')}${i === 0 ? ' · now' : ''}</small><h3>${esc(r.title)}</h3><p>${esc(r.sub || '')}</p></div></a>`).join('')}</div>`;
   }
@@ -305,7 +307,7 @@
     if (cfg.releases && cfg.releases.length) {
       out += sec(esc(cfg.releases_heading || `More from ${cfg.artist}`), 'Swipe →', `<div class="rail">${cfg.releases.map((r, i) => {
         const hue = ['var(--acc)', 'var(--acc2)', 'var(--dom)', 'var(--bg2)'][i % 4];
-        return `<a class="rel" href="#"><div class="art" style="position:relative;background:linear-gradient(150deg,${hue},var(--bg));${r.art ? `background-image:url('${esc(r.art)}');background-size:cover;` : ''}">${r.art ? '' : esc(r.title)}</div><p>${esc(r.title)}</p><small>${esc(r.sub || '')}</small></a>`;
+        return `<a class="rel" href="${esc(relUrl(r))}" target="_blank" rel="noopener" data-link="release"><div class="art" style="position:relative;background:linear-gradient(150deg,${hue},var(--bg));${r.art ? `background-image:url('${esc(r.art)}');background-size:cover;` : ''}">${r.art ? '' : esc(r.title)}</div><p>${esc(r.title)}</p><small>${esc(r.sub || '')}</small></a>`;
       }).join('')}</div>`);
     }
     return out;
@@ -322,7 +324,7 @@
     const fc = cfg.fan_capture || {};
     return sec(esc(fc.heading || 'Get the drop first'), 'Fans stay yours', `<div class="card"><form class="form" data-form="fans">
       <div class="seg" role="tablist"><button type="button" class="on" data-ch="email">Email</button><button type="button" data-ch="sms">Text me</button></div>
-      <input class="in" name="contact" type="email" placeholder="you@email.com" autocomplete="off" required>
+      <input aria-label="you@email.com" class="in" name="contact" type="email" placeholder="you@email.com" autocomplete="off" required>
       <button class="btn" type="submit">${esc(fc.cta || 'Notify me')}</button>
       <p class="fine">Demo form · saved only in this browser · real version syncs to your list with consent + unsubscribe</p>
     </form></div>`);
@@ -418,9 +420,9 @@
     const types = b.types || ['Feature', 'Show', 'Sponsor'];
     return sec(esc(b.heading || 'Book / work with me'), 'Goes straight to your inbox', `<div class="card"><form class="form" data-form="book">
       <div class="seg">${types.map((t, i) => `<button type="button" class="${i ? '' : 'on'}" data-bt="${esc(t)}">${esc(t)}</button>`).join('')}</div>
-      <div class="row"><input class="in" placeholder="Name" required><input class="in" type="email" placeholder="Email" required></div>
-      <input class="in" placeholder="Date / city (if it's a show)">
-      <textarea class="in" placeholder="What are you thinking? (feature, show, collab)"></textarea>
+      <div class="row"><input aria-label="Name" class="in" placeholder="Name" required><input aria-label="Email" class="in" type="email" placeholder="Email" required></div>
+      <input aria-label="Date / city (if it's a show)" class="in" placeholder="Date / city (if it's a show)">
+      <textarea aria-label="What are you thinking? (feature, show, collab)" class="in" placeholder="What are you thinking? (feature, show, collab)"></textarea>
       <button class="btn" type="submit">Send request</button><p class="fine">Demo form · nothing is sent · a request, not a confirmed booking</p></form></div>`);
   }
 
@@ -456,7 +458,7 @@
   function footer() {
     let f = reviewBox();
     if (F.customDomain) f += `<div class="domain"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Served on <b>${esc(cfg.domain_display || 'your-own-domain.com')}</b> · no third-party branding</div>`;
-    if (F.badge) f += `<a class="made" href="#"><i></i>Made with ${esc(cfg.brand_name || 'CreatorPages')} · ${esc((cfg.tierMeta || {}).label || '')}</a>`;
+    if (F.badge) f += `<a class="made" href="${esc(cfg.made_url || 'https://creatorpages.example/?ref=made-with')}" target="_blank" rel="noopener" data-link="CreatorPages"><i></i>Made with ${esc(cfg.brand_name || 'CreatorPages')} · ${esc((cfg.tierMeta || {}).label || '')}</a>`;
     f += `<p class="legal">${esc(cfg.footer_note || '')}</p>`;
     return `<footer class="foot">${f}</footer>`;
   }
@@ -517,7 +519,7 @@
   function igFeed() {
     if (!F.igGrid) return ''; const L = cfg.ig_feed || []; if (!L.length) return '';
     const ig = (cfg.links || []).find(l => l.platform === 'instagram');
-    return sec('Instagram', ig ? `<a href="${esc(ig.url)}" data-link="instagram">${esc(cfg.ig_handle || 'Open')} ↗</a>` : '', `<div class="igg">${L.slice(0, 9).map(src => `<a href="${esc(ig ? ig.url : '#')}" data-link="instagram"><img src="${esc(src)}" alt="" loading="lazy"></a>`).join('')}</div>${demoNote('Feed-style grid from their uploads (a live IG feed needs their Instagram login in the real version)')}`);
+    return sec('Instagram', ig ? `<a href="${esc(ig.url)}" data-link="instagram">${esc(cfg.ig_handle || 'Open')} ↗</a>` : '', `<div class="igg">${L.slice(0, 9).map((src, i) => `<a href="${esc(ig ? ig.url : '#instagram')}" data-link="instagram" aria-label="Instagram post ${i + 1}"><img src="${esc(src)}" alt="" loading="lazy" width="300" height="300"></a>`).join('')}</div>${demoNote('Feed-style grid from their uploads (a live IG feed needs their Instagram login in the real version)')}`);
   }
   /* ---------- booking (portfolio / service pros) ----------
      Bronze: a Book-now button from a pasted URL (provider auto-detected, deep link per service), hours, cancellation + deposit note (links out).
@@ -543,8 +545,8 @@
     return sec(esc((cfg.booking_form || {}).heading || 'Book'), F.bookingForm ? 'Request · not instant booking' : esc(BK.name), (F.bookingForm ? '' : bookButton()) + inner);
   }
   function shortForm() {
-    return `<form class="form" data-form="bookreq" data-mode="short"><div class="row"><input class="in" name="name" placeholder="Name" required><input class="in" name="email" type="email" placeholder="Email" required></div>
-      <select class="in" name="service">${(cfg.services || []).map(x => `<option>${esc(x.name)}</option>`).join('')}</select><input class="in" name="when" placeholder="Days / times that work">
+    return `<form class="form" data-form="bookreq" data-mode="short"><div class="row"><input aria-label="Name" class="in" name="name" placeholder="Name" required><input aria-label="Email" class="in" name="email" type="email" placeholder="Email" required></div>
+      <select aria-label="Service" class="in" name="service">${(cfg.services || []).map(x => `<option>${esc(x.name)}</option>`).join('')}</select><input aria-label="Days / times that work" class="in" name="when" placeholder="Days / times that work">
       <button class="btn" type="submit">Send request</button><p class="fine">Demo · nothing is sent. You'd get a "request received, not yet booked" email.</p></form>`;
   }
   function intakeForm() {
@@ -555,11 +557,11 @@
       <div class="fs"><div class="fs-h">1 · Service</div><div class="picks">${svc}</div></div>
       <div class="fs"><div class="fs-h">2 · Preferred dates & times</div><div class="row"><input class="in" type="date" name="d1" aria-label="First choice date"><input class="in" type="date" name="d2" aria-label="Second choice date"></div>
         <div class="seg chips" data-multi="1">${['Morning', 'Afternoon', 'Evening', 'Weekend'].map((t, i) => `<button type="button" class="${i === 1 ? 'on' : ''}" data-v="${t}">${t}</button>`).join('')}</div></div>
-      ${v === 'tattoo' ? `<div class="fs"><div class="fs-h">3 · Placement & size</div><div class="row"><select class="in" name="placement">${['Forearm', 'Upper arm', 'Calf', 'Thigh', 'Back', 'Ribs', 'Other'].map(x => `<option>${x}</option>`).join('')}</select><select class="in" name="size">${['Palm-size (2–3")', '4–6"', 'Half sleeve', 'Large / multi-session'].map(x => `<option>${x}</option>`).join('')}</select></div><label class="chk"><input type="checkbox" name="color"> Color (otherwise black & grey)</label></div>` : ''}
+      ${v === 'tattoo' ? `<div class="fs"><div class="fs-h">3 · Placement & size</div><div class="row"><select class="in" name="placement" aria-label="Placement">${['Forearm', 'Upper arm', 'Calf', 'Thigh', 'Back', 'Ribs', 'Other'].map(x => `<option>${x}</option>`).join('')}</select><select class="in" name="size" aria-label="Size">${['Palm-size (2–3")', '4–6"', 'Half sleeve', 'Large / multi-session'].map(x => `<option>${x}</option>`).join('')}</select></div><label class="chk"><input type="checkbox" name="color"> Color (otherwise black & grey)</label></div>` : ''}
       ${v === 'lash' ? `<div class="fs"><div class="fs-h">3 · Patch test</div><label class="chk"><input type="checkbox" name="patch"> I'll book a patch test 24–48h before (required for first-time clients)</label><label class="chk"><input type="checkbox" name="lenses"> I wear contact lenses</label></div>` : ''}
-      <div class="fs"><div class="fs-h">${v === 'tattoo' || v === 'lash' ? '4' : '3'} · Your idea + reference photos</div><textarea class="in" name="idea" placeholder="${esc(b.idea_placeholder || 'Tell me your idea')}"></textarea>
-        <label class="in file">Add reference photos <input type="file" accept="image/*" multiple data-refs></label><div class="refs"></div></div>
-      <div class="fs"><div class="fs-h">Contact</div><div class="row"><input class="in" name="name" placeholder="Name" required><input class="in" name="email" type="email" placeholder="Email" required></div>
+      <div class="fs"><div class="fs-h">${v === 'tattoo' || v === 'lash' ? '4' : '3'} · Your idea + reference photos</div><textarea class="in" name="idea" aria-label="Your idea" placeholder="${esc(b.idea_placeholder || 'Tell me your idea')}"></textarea>
+        <label class="in file">Add reference photos <input aria-label="Reference photos" type="file" accept="image/*" multiple data-refs></label><div class="refs"></div></div>
+      <div class="fs"><div class="fs-h">Contact</div><div class="row"><input aria-label="Name" class="in" name="name" placeholder="Name" required><input aria-label="Email" class="in" name="email" type="email" placeholder="Email" required></div>
         <label class="chk"><input type="checkbox" name="remind" checked> Send me reminders (email/text) once it's booked</label></div>
       <div class="fs dep"><div class="fs-h">Deposit</div><p>${esc(dep.text || 'A deposit holds your spot once the artist accepts. It is paid on their booking/payment page, never on this site.')}</p>${dep.url ? `<a class="btn ghost sm" href="${esc(dep.url)}" target="_blank" rel="noopener" data-book="${esc(provider(dep.url).id)}">Deposit instructions on ${esc(provider(dep.url).name)} ↗</a>` : ''}</div>
       <label class="chk req"><input type="checkbox" name="ack" required> I've read the <a href="#policies" data-act="show-policies">booking, cancellation and aftercare policies</a></label>
@@ -660,7 +662,7 @@
     if (f.type === 'live' && F.liveTakeover) return '';
     const ICO = { live: f.platform || 'twitch', merch: f.platform, video: 'youtube', booking: null, release: f.platform };
     const k = ICO[f.type]; const brand = k && (window.ICONS[k] || {}).hex;
-    return `<a class="feat-card ${esc(f.type)}" href="${esc(f.url || '#')}" ${f.url ? `data-link="${esc(k || 'link')}"` : 'data-act="scroll-book"'}>
+    return `<a class="feat-card ${esc(f.type)}" href="${esc(f.url || '#book')}" ${f.url ? `data-link="${esc(k || 'link')}"` : 'data-act="scroll-book"'}>
       <span class="fc-ico" style="background:${brand ? '#' + brand : 'var(--acc)'}">${k && window.ICONS[k] ? icon(k) : '<svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z M4 7l8 6 8-6" fill="none" stroke="#fff" stroke-width="2"/></svg>'}</span>
       <span class="fc-txt"><small>${esc(f.kicker || '')}</small><b>${esc(f.title || '')}</b>${f.sub ? `<em>${esc(f.sub)}</em>` : ''}</span><span class="fc-go">${esc(f.cta || 'Open')}</span></a>`;
   }
@@ -683,11 +685,16 @@
   const app = document.getElementById('app');
   const goldChrome = GOLD ? `<div class="g-chapter"><b>01</b><span>${esc((panelsFor()[0] || ['Intro'])[0])}</span><div class="bar"><i></i></div></div>` : '';
   const goldOuter = GOLD ? `<div class="g-grade"></div><canvas class="g-fx"></canvas>${(T.signature === 'glitch') ? '<div class="g-scan"></div>' : ''}<div class="g-cursor"></div>
-    ${isLive ? `<div class="g-live"><span class="dot"></span><span class="mq"><span>LIVE NOW · ${esc(cfg.live.title || '')}${cfg.live.viewers ? ` · ${esc(cfg.live.viewers)} watching` : ''} · tap to jump in ·</span></span><a href="#" data-link="twitch">Watch</a></div>` : ''}
-    <div class="g-intro"><div>${wordmark(cfg.title, 'aria-hidden="true"')}<small>${esc(T.intro_line || 'loading the world')}</small></div></div>` : '';
+    ${isLive ? `<div class="g-live"><span class="dot"></span><span class="mq"><span>LIVE NOW · ${esc(cfg.live.title || '')}${cfg.live.viewers ? ` · ${esc(cfg.live.viewers)} watching` : ''} · tap to jump in ·</span></span><a href="${esc(((cfg.links || []).find(l => l.platform === 'twitch') || (cfg.links || [])[0] || {}).url || 'https://twitch.tv/placeholder')}" target="_blank" rel="noopener" data-link="twitch">Watch</a></div>` : ''}
+    <div class="g-intro"><div>${wordmark(cfg.title, 'aria-hidden="true"', 'div')}<small>${esc(T.intro_line || 'loading the world')}</small></div></div>` : '';
   if (goldOuter) document.body.insertAdjacentHTML('afterbegin', goldOuter);
   if (STUDIO_LOCKED) document.body.insertAdjacentHTML('afterbegin', '<div class="st-lock">Studio Looks are a&nbsp;<b>Gold</b>&nbsp;option · preview only</div>');
-  if (cfg.demo_banner) document.body.insertAdjacentHTML('afterbegin', `<div class="demo-banner">${esc(cfg.demo_banner)}${HUB ? ' · hub preview' : ''}</div>`);
+  /* round 6 (LCP): the depth cut-out loads after first paint so the hero's mid layer wins the bandwidth */
+  const lazyFg = () => document.querySelectorAll('.g-layer.fg img[data-src]').forEach(i => { i.src = i.dataset.src; i.removeAttribute('data-src'); });
+  if (document.readyState === 'complete') setTimeout(lazyFg, 50); else addEventListener('load', () => setTimeout(lazyFg, 50), { once: true });
+  /* round 6: the demo label is a thin in-flow strip at the very top (scrolls away, never covers content); the SAMPLE pill + footer note stay as persistent labels */
+  if (cfg.demo_banner) { document.body.insertAdjacentHTML('afterbegin', `<div class="demo-banner" role="note">${esc(cfg.demo_banner)}${HUB ? ' · hub preview' : ''}</div>`); root.style.setProperty('--demo-h', '18px');
+    const gl = document.querySelector('.g-live'); if (gl) { const f = () => { gl.style.top = Math.max(0, 18 - scrollY) + 'px'; }; f(); addEventListener('scroll', f, { passive: true }); } }
   app.innerHTML = goldChrome + topbar() + hero() + musicDock() + featured() + links() + socials() + countdownCard() + tabbed() + qrCard() + analytics() + footer();
   // Bronze: QR sits right after links (it's the only extra). Above order already handles that.
 
@@ -746,7 +753,7 @@
     if (a.dataset.link) { e.preventDefault(); toast(`${NAMES[a.dataset.link] || a.dataset.link}: opens their own page (placeholder link in this demo)`); return; }
     const act = a.dataset.act;
     if (act === 'export') { const rows = [['contact', 'channel', 'signed_up_at', 'source'], ...fans().map(f => [f.contact, f.channel, f.at, f.source])]; download(`${cfg.slug}-fans.csv`, rows.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\n'), 'text/csv'); toast('Fan list exported'); }
-    if (act === 'scroll-book') { const b = document.querySelector('[data-form=book]'); b ? b.scrollIntoView({ behavior: 'smooth' }) : toast('Booking: add a contact link to enable'); }
+    if (act === 'scroll-book') { e.preventDefault(); const b = document.querySelector('[data-form=book]'); b ? b.scrollIntoView({ behavior: 'smooth' }) : toast('Booking: add a contact link to enable'); }
     if (act === 'tix') toast('Ticket link: placeholder (demo)');
     if (act === 'owner') { const s = document.querySelector('.analytics'); s.classList.toggle('on'); a.textContent = s.classList.contains('on') ? 'Hide owner view' : 'Owner view · analytics'; }
     if (act === 'epk') { const e2 = cfg.epk || {}; download(`${cfg.slug}-press-kit.txt`, `${cfg.artist || cfg.title} | Press kit\n\n${e2.bio}\n\nStats\n${(e2.stats || []).map(s => `- ${s.l}: ${s.v}`).join('\n')}\n\nContact: use the booking form on the page.\n(Demo export, sample data)`, 'text/plain'); toast('Press kit downloaded'); }

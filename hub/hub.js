@@ -33,7 +33,7 @@
     root.innerHTML = `<div class="wrap"><div class="hd"><div class="who"><img src="${esc(a.avatar)}" alt=""><div><b>${esc(a.label)}</b><small>${esc(a.sub)} · demo account</small></div></div>
       <div class="tseg" role="group" aria-label="Plan (demo switcher)">${TIERS.map(t => `<button data-t="${t}" class="${S.tier === t ? 'on' : ''}">${TL[t]}</button>`).join('')}</div>
       <button class="out" data-act="logout">Log out (demo)</button></div>
-      <nav class="tabs">${[['editor', 'Page editor'], ['analytics', 'Analytics'], ...(showReq ? [['requests', 'Requests']] : []), ['fans', 'Fans'], ['billing', 'Plan & billing']].map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}">${l}${k === 'requests' && newReq && rank(S.tier) >= 1 ? `<span class="n">${newReq}</span>` : ''}</button>`).join('')}</nav>
+      <nav class="tabs">${[['editor', 'Page editor'], ['analytics', 'Analytics'], ...(showReq ? [['requests', 'Requests']] : []), ['fans', 'Fans'], ['billing', 'Plan & billing']].map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}"${S.tab === k ? ' aria-current="page"' : ''}${k === 'requests' && newReq && rank(S.tier) >= 1 ? ` aria-label="Requests, ${newReq} new"` : ''}>${l}${k === 'requests' && newReq && rank(S.tier) >= 1 ? `<span class="n" aria-hidden="true">${newReq}</span>` : ''}</button>`).join('')}</nav>
       <section id="pane">${({ editor, analytics, requests, fans, billing })[S.tab]()}</section></div>`;
     wire();
   }

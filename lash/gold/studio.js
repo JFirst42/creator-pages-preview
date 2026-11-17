@@ -45,9 +45,9 @@ window.CPStudio = (function () {
   /* ---------- wordmark + header banner ---------- */
   function wordmark(cfg, look) {
     const B = cfg.brand || {};
-    if (look === 'brand' && B.logo) return `<img class="st-logo" src="${esc(B.logo)}" alt="${esc(cfg.title)} logo">`;
+    if (look === 'brand' && B.logo) return `<h1 class="st-h1"><img class="st-logo" src="${esc(B.logo)}" alt="${esc(String(cfg.title || '').replace(/\s*\((sample|demo)\)\s*$/i, ''))}" width="600" height="600"></h1>`;
     const sub = cfg.studio && cfg.studio.subline || cfg.vertical_label || '';
-    return `<div class="st-wm"><span class="st-wm-t">${esc(cfg.studio && cfg.studio.wordmark || String(cfg.title || '').replace(/\s*\((sample|demo)\)\s*$/i, ''))}</span>${sub ? `<span class="st-wm-s">${esc(sub)}</span>` : ''}</div>`;
+    return `<div class="st-wm"><h1 class="st-wm-t">${esc(cfg.studio && cfg.studio.wordmark || String(cfg.title || '').replace(/\s*\((sample|demo)\)\s*$/i, ''))}</h1>${sub ? `<span class="st-wm-s">${esc(sub)}</span>` : ''}</div>`;
   }
   function hero(x) {
     const { cfg, look, heroCTA, PORT } = x; const B = cfg.brand || {}, S = cfg.studio || {};
@@ -100,7 +100,7 @@ window.CPStudio = (function () {
     const out = [];
     if (cfg.release || cfg.featured) out.push({ name: cfg.layout === 'streamer' ? 'Watch live' : (cfg.featured || {}).type === 'video' ? 'Latest video' : 'New release', photo: cfg.cover || g[0], badge: (cfg.featured || {}).kicker || 'Out now', items: (cfg.links || []).slice(0, 3).map(l => ({ name: l.label || PN[l.platform] || l.platform, url: l.url, platform: l.platform, cta: 'Listen' })) });
     if ((cfg.merch || []).length) out.push({ name: 'Merch', photo: g[0], badge: 'Shop', items: cfg.merch.slice(0, 3).map(m => ({ name: m.name, note: m.kind, url: (cfg.store || {}).url || '#', platform: (cfg.store || {}).platform || 'shop', cta: 'Shop' })) });
-    if ((cfg.shows || []).length) out.push({ name: 'Shows', photo: g[0], badge: `${cfg.shows.length} dates`, items: cfg.shows.slice(0, 3).map(s => ({ name: `${s.city || ''} · ${s.venue || ''}`, note: s.date, url: s.url || '#', platform: 'tickets', cta: 'Tickets' })) });
+    if ((cfg.shows || []).length) out.push({ name: 'Shows', photo: g[0], badge: `${cfg.shows.length} dates`, items: cfg.shows.slice(0, 3).map(s => ({ name: `${s.city || ''} · ${s.venue || ''}`, note: s.date, url: s.url || s.tickets || cfg.page_url || 'https://example.com/placeholder-tickets', platform: 'tickets', cta: 'Tickets' })) });
     if ((cfg.schedule || []).length) out.push({ name: 'This week', photo: g[0], badge: 'Schedule', items: cfg.schedule.filter(s => !s.off).slice(0, 4).map(s => ({ name: `${s.day} · ${s.title}`, note: s.time })) });
     if (cfg.takes_bookings) out.push({ name: cfg.layout === 'streamer' ? 'Sponsors' : 'Features & shows', photo: g[0], badge: 'Book me', items: [{ name: cfg.layout === 'streamer' ? 'Brand partnership' : 'Feature verse / hook', note: 'Send the details' }, { name: cfg.layout === 'streamer' ? 'Sponsored stream' : 'Live show', note: 'Use the Book me form' }] });
     return out;

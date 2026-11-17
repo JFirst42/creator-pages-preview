@@ -346,7 +346,7 @@ html.freeze .flip,html.freeze .panel,html.freeze .reveal{animation:none!importan
 .hcta-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 .hcta-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 5px;border-radius:99px;background:color-mix(in srgb,var(--bg) 55%,transparent);border:1px solid var(--line);color:var(--text);text-decoration:none;font-weight:700;font-size:13px;backdrop-filter:blur(8px)}
 .hcta-chip .hi{width:26px;height:26px;border-radius:50%}.hcta-chip .hi svg{width:15px;height:15px}
-.demo-banner{position:fixed;left:0;right:0;bottom:0;z-index:99;text-align:center;padding:6px 10px calc(6px + env(safe-area-inset-bottom));font:700 11px/1.2 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#1a1300;background:repeating-linear-gradient(135deg,#ffd23f 0 14px,#ffc400 14px 28px)}
+.demo-banner{position:relative;z-index:5;display:block;height:18px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;padding:0 10px;font:700 9.5px/18px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#1a1300;background:repeating-linear-gradient(135deg,#ffd23f 0 12px,#ffc400 12px 24px)}
 
 /* ===== round 3: tip chip + sheet, extra sections, portfolio, booking, light theme ===== */
 .tip-chip{height:36px;padding:0 12px 0 10px;border-radius:99px;display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);font:700 13px/1 var(--font-body);cursor:pointer}
@@ -463,3 +463,17 @@ html[data-theme=light]{color-scheme:light}
 @media(max-width:430px){.tip-chip .tc-t{max-width:98px}}
 @media(max-width:380px){.tip-chip .tc-t{max-width:80px}}
 html,body{overflow-x:clip}
+/* ---- round 6 polish: 44px tap targets, AA contrast, no clipped tip chip ---- */
+.icon-btn{width:44px;height:44px}
+.tip-chip{height:44px;padding:0 14px 0 12px}
+.socials{gap:8px;flex-wrap:wrap}.socials a{width:44px;height:44px}
+.made{min-height:44px;height:auto;padding:0 16px}
+.tabs button{height:44px}
+.hcta-chip{min-height:44px;padding:8px 14px 8px 8px}
+.hcta-main{min-height:56px}.hcta-main .ht small{opacity:1}
+.link .go{min-height:36px}
+.igg a{display:block}
+@media(max-width:430px){.tip-chip .tc-t{max-width:112px}}
+@media(max-width:380px){.tip-chip .tc-t{max-width:92px}}
+.topbar{height:44px}
+.sample-pill{white-space:nowrap}

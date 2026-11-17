@@ -20,7 +20,7 @@ html[data-tier="gold"] body{cursor:default}
 @keyframes fadein{to{opacity:1}}
 
 /* ---- hero ---- */
-.g-hero{position:relative;height:min(100svh,880px);min-height:720px;margin:-60px -18px 0;overflow:hidden;isolation:isolate}
+.g-hero{position:relative;height:min(calc(100svh - var(--demo-h,0px) - var(--tier-switch-h,0px)),880px);min-height:560px;margin:-60px -18px 0;overflow:hidden;isolation:isolate}
 .g-stage{position:absolute;inset:0;perspective:1100px}
 .g-layer{position:absolute;will-change:transform}
 .g-layer.bg{inset:-12%;background:var(--art) center/cover;filter:blur(22px) saturate(1.5) brightness(calc(.5 + var(--beat)*.18))}
