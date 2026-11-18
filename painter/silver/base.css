@@ -483,3 +483,5 @@ html,body{overflow-x:clip}
 html[data-nums="0"] .g-chapter b{display:none}
 html[data-nums="0"] .g-chapter{padding-left:14px}
 html[data-nums="0"] .scene-h{gap:0}
+/* round 8: footer legal line meets AA on light themes (was muted at 75% opacity) */
+[data-theme=light] .legal{opacity:1;color:color-mix(in srgb,var(--text) 72%,var(--bg))}
