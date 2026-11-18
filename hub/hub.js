@@ -61,6 +61,7 @@
       <div style="display:grid;gap:12px">
       ${f.hubAdvanced ? `<div class="modeseg" role="group" aria-label="Editor mode"><button data-mode="simple" class="${simple ? 'on' : ''}"><b>Simple</b><small>Look, style, photos</small></button><button data-mode="advanced" class="${adv ? 'on' : ''}"><b>Advanced</b><small>Fonts, colors, cards, order, blocks</small></button></div>` : ''}
       <div class="box"><h3>Look <small>${f.looks ? 'how your whole page is dressed' : 'Gold option'}</small></h3>${lookUI(c)}</div>
+      <div class="box" id="stbox"><h3>Section titles <small>rename them or keep ours</small></h3><div id="sectitles"><p class="fine">Reading your sections from the preview…</p></div></div>
       ${f.looks && lookNow(c) === 'studio' ? `<div class="box"><h3>Style <small>${esc(A().verticalLabel)} presets</small></h3>${presetUI(c)}</div>` : ''}
       ${f.looks && lookNow(c) === 'pro' && ST().pro ? `<div class="box"><h3>Template &amp; motion <small>pick one of each</small></h3>${proUI(c)}</div>` : ''}
       ${f.looks ? `<div class="box"><h3>Photos <small>tap a slot to swap</small></h3>${photosUI(c)}</div>` : ''}
@@ -342,11 +343,36 @@
       <p class="fine" style="margin-top:10px">Prices are set on Whop (placeholder: no live Whop link in this demo).</p>`;
   }
 
+  /* ---------------- round 8: section titles + "Show section numbers" ----------------
+     Reads the sections the preview actually shows (window.CP_PANELS in the iframe), so it works for every tier, look and trade.
+     Saved as section_titles {id: title} + display.sectionNumbers; the page cleans + escapes them again on render. */
+  const cleanTitle = v => { const t = [...String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim()].slice(0, 24).join('').trim(); return /[\p{L}\p{N}]/u.test(t) ? t : ''; };
+  let stIds = '';
+  function fillTitles() {
+    const box = $('#sectitles'), f = $('#pvf'); if (!box || !f) return;
+    let PN = null; try { PN = f.contentWindow.CP_PANELS; } catch (e) {}
+    if (!PN || !PN.list.length) { stIds = ''; box.innerHTML = `<p class="fine">${S.tier === 'bronze' ? 'Bronze is one simple page without sections, so there is nothing to rename. Section titles and the numbers toggle come with Silver and Gold.' : 'This page has no sections yet. Add some under Sections.'}</p>`; return; }
+    const ids = PN.list.map(p => p.id).join(','); const focused = box.contains(document.activeElement);
+    if (focused && ids === stIds) return;   // typing: don't re-render under the cursor
+    stIds = ids; const c = cur(), T = c.section_titles || {}, nums = (c.display || {}).sectionNumbers !== false;
+    box.innerHTML = (PN.list.length ? `<div class="sts">${PN.list.map(p => { const v = T[p.id] || ''; return `<div class="st-row"><label for="st-${esc(p.id)}"><b>${esc(p.def)}</b><small>premade</small></label>
+        <input class="in" id="st-${esc(p.id)}" data-st="${esc(p.id)}" maxlength="24" value="${esc(v)}" placeholder="${esc(p.def)}" autocomplete="off" aria-describedby="stnote">
+        <button type="button" class="mini" data-streset="${esc(p.id)}" ${v ? '' : 'disabled'} aria-label="Reset ${esc(p.def)} to the premade title">Reset</button></div>`; }).join('')}</div>` : '')
+      + `<p class="fine" id="stnote" style="margin-top:6px">Up to 24 characters. Leave a box empty (or emoji only) to keep the premade title.${PN.titled ? '' : ' This plan shows sections without headings, so titles are used in the share studio and appear once you upgrade.'}</p>
+      <label class="sw-row" style="margin-top:8px"><b>Show section numbers <small>01 · 02 · 03</small></b><span class="sw"><input type="checkbox" data-nums ${nums ? 'checked' : ''}><i></i></span></label>
+      ${PN.numbered ? '' : '<p class="fine">This look has no numbered headings right now; the setting applies when you switch to one that does (Gold Art, Modern Editorial).</p>'}
+      ${Object.keys(T).length ? '<button type="button" class="mini" data-stresetall style="margin-top:8px">Reset all titles</button>' : ''}`;
+  }
+  function saveTitle(id, raw, now) { const c = cur(), T = Object.assign({}, c.section_titles || {}); const v = [...String(raw || '')].slice(0, 24).join(''); if (cleanTitle(v)) T[id] = v.trim(); else delete T[id]; save({ section_titles: T }, now);
+    const rb = $(`[data-streset="${id}"]`); if (rb) rb.disabled = !T[id]; }
+
   /* ---------------- wiring ---------------- */
   function wire() {
     const P = $('#pane');
+    const pvf = $('#pvf'); if (pvf) { pvf.addEventListener('load', fillTitles); stIds = ''; try { if (pvf.contentWindow.CP_PANELS) fillTitles(); } catch (e) {} }
     P.addEventListener('input', e => {
       const t = e.target, c = cur();
+      if (t.dataset.st !== undefined) { saveTitle(t.dataset.st, t.value); return; }
       if (t.type === 'url') { const okU = !t.value || /^(https:\/\/[^\s]+|#placeholder[\w-]*)$/i.test(t.value); t.style.borderColor = okU ? '' : '#ff6b6b'; if (!okU) return; }
       if (t.tagName === 'SELECT' && t.dataset.k === 'tagline') return;
       if (t.dataset.card !== undefined) { const L = JSON.parse(JSON.stringify(stNow(c).cards || ST().cards || [])), k = L[+t.dataset.card], v = t.value;
@@ -366,6 +392,8 @@
     });
     P.addEventListener('change', e => {
       const t = e.target, c = cur();
+      if (t.dataset.nums !== undefined) { save({ display: Object.assign({}, c.display || {}, { sectionNumbers: t.checked }) }, true); toast(t.checked ? 'Section numbers on' : 'Section numbers hidden'); return; }
+      if (t.dataset.st !== undefined) { if (!cleanTitle(t.value)) { t.value = ''; saveTitle(t.dataset.st, '', true); } return; }
       if (t.dataset.font) { const fo = Object.assign({}, stNow(c).fonts || {}); if (t.value) fo[t.dataset.font] = t.value; else delete fo[t.dataset.font]; saveSt(c, { fonts: fo }, true); return; }
       if (t.dataset.bfont) { const b = brandNow(c), fo = Object.assign({}, b.fonts || {}); if (t.value) fo[t.dataset.bfont] = t.value; else delete fo[t.dataset.bfont]; save({ brand: Object.assign({}, b, { fonts: fo }) }, true); return; }
       if (t.dataset.drop === 'off') { const d = Object.assign({}, ST().drop || {}, stNow(c).drop || {}, { off: t.checked }); saveSt(c, { drop: d }, true); return; }
@@ -389,6 +417,9 @@
       if (t.dataset.fk === 'title') save({ featured: Object.assign({}, c.featured || {}, { title: t.value }) }, true);
     });
     P.addEventListener('click', e => {
+      const sr = e.target.closest('[data-streset],[data-stresetall]');
+      if (sr) { if (sr.dataset.stresetall !== undefined) { save({ section_titles: {} }, true); stIds = ''; toast('All section titles reset'); return; }
+        const id = sr.dataset.streset, inp = $(`[data-st="${id}"]`); if (inp) inp.value = ''; saveTitle(id, '', true); toast('Back to the premade title'); return; }
       const b = e.target.closest('button,[data-ra]'); if (!b) return; const c = cur();
       if (b.dataset.look) { save({ look: b.dataset.look }, true); S.pvLook = ''; render(); toast(b.dataset.look === 'art' ? 'Art-matched Look' : b.dataset.look === 'pro' ? 'Pro templates · pick a template and motion below' : b.dataset.look === 'studio' ? 'Studio Look · pick a style below' : 'My brand Look · add your logo and header'); return; }
       if (b.dataset.bptpl || b.dataset.bpmo) { const P = proNow(c); if (b.dataset.bptpl) P.template = b.dataset.bptpl; else P.motion = b.dataset.bpmo; save({ pro: { template: P.template, motion: P.motion }, look: 'pro' }, true); render(); toast((BP_T[P.template] || {}).label + ' · ' + BP_M[P.motion][0] + ' motion'); return; }

@@ -32,6 +32,12 @@
     show && { id: 'show', label: 'Show date', kicker: new Date(show.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase(), title: show.city, sub: show.venue || '', cta: show.cta || 'Get tickets', hash: 'shows', icons: [] },
     { id: 'page', label: 'Whole page', kicker: 'All my links', title: cfg.artist || cfg.title, sub: isStreamer ? (cfg.tagline || 'Streams · clips · community') : cfg.layout === 'portfolio' ? 'Work · services · booking' : `Music · video · merch · shows`, cta: 'Tap the link', hash: '', icons: [...new Set((cfg.links || []).concat(cfg.socials || []).map(l => l.platform))].slice(0, 6) }
   ].filter(Boolean);
+  /* round 8: chips + the whole-page line use the creator's own section titles when they renamed them */
+  const CT = window.CP.customTitle || (() => '');
+  const SECOF = { video: 'videos', live: 'schedule', show: 'shows', release: cfg.layout === 'portfolio' ? 'bookform' : 'music' };
+  WHAT.forEach(w => { const t = SECOF[w.id] && CT(SECOF[w.id]); if (t) w.label = t; });
+  const pageIds = isStreamer ? null : cfg.layout === 'portfolio' ? [['portfolio', 'Work'], ['services', 'Services'], ['bookform', 'Booking']] : [['music', 'Music'], ['videos', 'Video'], ['merch', 'Merch'], ['shows', 'Shows']];
+  const pg = WHAT.find(w => w.id === 'page'); if (pg && pageIds && pageIds.some(([id]) => CT(id))) pg.sub = pageIds.map(([id, d]) => CT(id) || d).join(' · ');
   const HOW = [
     { id: 'story', label: 'Story', w: 1080, h: 1920, note: '9:16 · IG / FB / TikTok story' },
     STUDIO && { id: 'post', label: 'Post', w: 1080, h: 1080, note: '1:1 · feed post' },

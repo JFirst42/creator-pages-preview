@@ -479,3 +479,7 @@ html,body{overflow-x:clip}
 .sample-pill{white-space:nowrap}
 .feat-card.live .fc-go{background:#c8102f}
 .show .tix{min-height:44px;height:auto;color:var(--text);border-color:var(--acc)}
+/* round 8: "Show section numbers" off -> no numerals anywhere, no leftover gaps */
+html[data-nums="0"] .g-chapter b{display:none}
+html[data-nums="0"] .g-chapter{padding-left:14px}
+html[data-nums="0"] .scene-h{gap:0}

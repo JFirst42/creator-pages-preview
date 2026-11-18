@@ -7,7 +7,7 @@
   /* Creator hub live preview (?hub=1): the hub editor writes overrides to localStorage; only whitelisted content keys apply.
      Tier features (cfg.features) can never be changed from here. */
   const HUB = qs.has('hub');
-  const HUB_KEYS = ['title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture', 'tip_saying', 'music', 'accent', 'look', 'studio', 'brand', 'drop', 'photos', 'pro'];
+  const HUB_KEYS = ['title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture', 'tip_saying', 'music', 'accent', 'look', 'studio', 'brand', 'drop', 'photos', 'pro', 'section_titles', 'display'];
   if (HUB) { try { const o = JSON.parse(localStorage.getItem('cp-hub-' + (cfg.hub_key || cfg.slug)) || 'null'); if (o) HUB_KEYS.forEach(k => { if (o[k] !== undefined && o[k] !== null) cfg[k] = (k === 'studio' || k === 'brand' || k === 'pro') && cfg[k] ? Object.assign({}, cfg[k], o[k]) : o[k]; }); } catch (e) {} }
   /* hub photo swaps: 'local:<slot>' points at a downscaled upload kept in this browser (demo); anything else is a page-relative path */
   const HKEY = cfg.hub_key || cfg.slug; const resImg = v => typeof v === 'string' && v.startsWith('local:') ? (localStorage.getItem('cp-hub-img-' + HKEY + '-' + v.slice(6)) || '') : v;
@@ -29,6 +29,15 @@
   if (cfg.theme_mode === 'light') root.dataset.theme = 'light';
   if (cfg.vertical) root.dataset.vertical = cfg.vertical;
   /* ---------- round 5: Looks. Gold: art | studio | brand. Silver: may preview studio (locked). ?look= is the demo switcher. ---------- */
+  /* round 8 (JB): creators can rename any section (or keep the premade title) and hide the 01/02/05 section numbers.
+     Config: section_titles {id: title} and/or sections[].title; display.sectionNumbers (default true). Preview: ?nums=0|1.
+     Titles are plain text, max 24 characters; empty or emoji-only falls back to the premade title. Rendered through esc(). */
+  const cleanTitle = v => { const t = [...String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim()].slice(0, 24).join('').trim(); return /[\p{L}\p{N}]/u.test(t) ? t : ''; };
+  const SEC_TITLES = Object.assign({}, ...(Array.isArray(cfg.sections) ? cfg.sections.filter(x => x && x.id && x.title).map(x => ({ [x.id]: x.title })) : []), cfg.section_titles || {});
+  const customTitle = id => cleanTitle(SEC_TITLES[id]);
+  const secTitle = (id, def) => customTitle(id) || def;
+  let NUMS = !(cfg.display && cfg.display.sectionNumbers === false); if (qs.get('nums') === '0') NUMS = false; else if (qs.get('nums') === '1') NUMS = true;
+  root.dataset.nums = NUMS ? '1' : '0';
   /* round 7: lash / hair / nail Gold pages also get the Beauty Pro templates (look "pro"; beauty.js) */
   const BEAUTY = F.looks && !!window.CPBeauty && ['lash', 'hair', 'nail'].includes(cfg.vertical);
   const LOOKS = BEAUTY ? ['pro', 'studio', 'brand', 'art'] : F.looks ? ['art', 'studio', 'brand'] : F.studioPreview ? ['art', 'studio'] : ['art'];
@@ -69,7 +78,7 @@
     try { (window.dataLayer = window.dataLayer || []).push(d); document.dispatchEvent(new CustomEvent('cp:track', { detail: d }));
       const k = 'cp-stats-' + (cfg.hub_key || cfg.slug), st = JSON.parse(localStorage.getItem(k) || '{}'), key = ev + (data && (data.method || data.id || data.platform) ? ':' + (data.method || data.id || data.platform) : '');
       st[key] = (st[key] || 0) + 1; localStorage.setItem(k, JSON.stringify(st)); } catch (e) {} };
-  window.CP = { cfg, F, STATIC, EXPAND, qs, track, MUSIC, ACCENT, cleanSaying, LOOK };
+  window.CP = { cfg, F, STATIC, EXPAND, qs, track, MUSIC, ACCENT, cleanSaying, LOOK, secTitle, customTitle, cleanTitle, NUMS };
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const icon = (k, fill) => {
@@ -296,7 +305,7 @@
     const list = [{ title: cfg.title, sub: cfg.layout === 'streamer' ? 'Latest highlight' : 'Out now', art: cfg.cover || 'cover.jpg' }, ...(cfg.releases || [])];
     return `<div class="eras">${list.map((r, i) => `<a class="era" href="${esc(relUrl(r))}" target="_blank" rel="noopener" data-link="${cfg.layout === 'streamer' ? 'clip' : 'release'}" style="--ec:${g[(i + 1) % g.length] || 'var(--acc)'};--ec2:${g[(i + 2) % g.length] || 'var(--acc2)'}">
       <div class="eart${r.art ? '' : ' gen'}" ${r.art ? `style="background-image:url('${esc(r.art)}')"` : `data-t="${esc(r.title)}"`}></div><span class="eplay"></span>
-      <div class="einfo"><small>${cfg.layout === 'streamer' ? 'Clip' : 'Era'} ${String(i + 1).padStart(2, '0')}${i === 0 ? ' · now' : ''}</small><h3>${esc(r.title)}</h3><p>${esc(r.sub || '')}</p></div></a>`).join('')}</div>`;
+      <div class="einfo"><small>${cfg.layout === 'streamer' ? 'Clip' : 'Era'}${NUMS ? ' ' + String(i + 1).padStart(2, '0') : ''}${i === 0 ? ' · now' : ''}</small><h3>${esc(r.title)}</h3><p>${esc(r.sub || '')}</p></div></a>`).join('')}</div>`;
   }
   function ecosystem() {
     if (!F.ecosystem) return '';
@@ -642,7 +651,7 @@
     let out;
     if (F.sectionBuilder && Array.isArray(cfg.sections) && cfg.sections.length) {
       out = cfg.sections.filter(x => x && x.on !== false && SEC[x.id] && ALLOWED.has(x.id)).map(x => [x.label || SEC[x.id][0], SEC[x.id][1](), x.id]);
-      return out.filter(p => p[1].trim());   // creator's own order wins on Gold
+      return named(out.filter(p => p[1].trim()));   // creator's own order wins on Gold
     }
     const hide = new Set();
     if (F.sectionToggles && cfg.section_toggles) (SILVER_TOGGLES[lay] || []).forEach(id => { if (cfg.section_toggles[id] === false) hide.add(id); });
@@ -654,8 +663,10 @@
     const want = [...(cfg.section_order || [])];
     if (cfg.feature_first && FF[cfg.feature_first]) want.unshift({ name: FF[cfg.feature_first], pos: 0 });
     want.forEach(w => { const names = [].concat(w.name); const i = out.findIndex(p => names.includes(p[0])); if (i < 0) return; const [x] = out.splice(i, 1); const pos = w.pos === 'last' ? out.length : Math.min(w.pos, out.length); out.splice(pos, 0, x); });
-    return out;
+    return named(out);
   }
+  /* round 8: custom titles are applied after ordering (ordering matches premade names); p[3] keeps the premade title */
+  function named(L) { return L.map(p => [secTitle(p[2], p[0]), p[1], p[2], p[0]]); }
 
   /* featured card: whatever the creator picked to "feature first" sits right under the hero */
   function featured() {
@@ -672,12 +683,13 @@
 
   function tabbed() {
     const P = panelsFor();
+    window.CP_PANELS = { titled: !!(SKIN || F.sceneTransitions || (F.tabs && !EXPAND)), numbered: !!(F.sceneTransitions && !SKIN), list: P.map(p => ({ id: p[2], def: p[3], title: p[0] })) };
     if (!P.length) return '';
     if (SKIN) return P.map((p, i) => window.CPStudio.frame(p[0], p[1], p[2], i)).join('');
     if (F.sceneTransitions) {
       const g = T.grades || [];
       return P.map((p, i) => `<section class="scene" data-name="${esc(p[0])}" data-sec="${esc(p[2] || '')}" data-grade="${g[i % g.length] || ''}" data-grade2="${g[(i + 2) % g.length] || ''}" style="--scene-c:${g[i % g.length] || 'var(--acc)'}">
-        <div class="scene-h"><span class="num">${String(i + 1).padStart(2, '0')}</span><h2>${esc(p[0])}</h2></div>${p[1]}</section>`).join('');
+        <div class="scene-h">${NUMS ? `<span class="num">${String(i + 1).padStart(2, '0')}</span>` : ''}<h2>${esc(p[0])}</h2></div>${p[1]}</section>`).join('');
     }
     if (EXPAND || !F.tabs) return P.map(p => `<div class="panel on">${EXPAND && F.tabs ? `<div class="eyebrow" style="margin:28px 2px -4px">${esc(p[0])} tab</div>` : ''}${p[1]}</div>`).join('');
     return `<div class="tabs" role="tablist">${P.map((p, i) => `<button role="tab" aria-selected="${i === 0}" data-tab="${i}">${esc(p[0])}</button>`).join('')}</div>
@@ -698,7 +710,7 @@
   /* round 6: the demo label is a thin in-flow strip at the very top (scrolls away, never covers content); the SAMPLE pill + footer note stay as persistent labels */
   if (cfg.demo_banner) { document.body.insertAdjacentHTML('afterbegin', `<div class="demo-banner" role="note">${esc(cfg.demo_banner)}${HUB ? ' · hub preview' : ''}</div>`); root.style.setProperty('--demo-h', '18px');
     const gl = document.querySelector('.g-live'); if (gl) { const f = () => { gl.style.top = Math.max(0, 18 - scrollY) + 'px'; }; f(); addEventListener('scroll', f, { passive: true }); } }
-  if (PRO) app.innerHTML = window.CPBeauty.render({ provider, tipChip, footer, icon, names: NAMES, esc });
+  if (PRO) app.innerHTML = window.CPBeauty.render({ provider, tipChip, footer, icon, names: NAMES, esc, secTitle, nums: NUMS });
   else app.innerHTML = goldChrome + topbar() + hero() + musicDock() + featured() + links() + socials() + countdownCard() + tabbed() + qrCard() + analytics() + footer();
   // Bronze: QR sits right after links (it's the only extra). Above order already handles that.
 

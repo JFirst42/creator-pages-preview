@@ -193,3 +193,11 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}td,th{padding:8px 6px
 .bpt-c b{font-size:13px}.bpt-c b em{font-style:normal;font-size:10px;color:#3a2a08;background:#fbe08a;border-radius:99px;padding:1px 6px;margin-left:2px}
 .bpt-c small{font-size:11px;color:var(--muted);line-height:1.3}
 .modeseg.bpm{grid-template-columns:repeat(3,1fr)}
+/* round 8: section titles */
+.sts{display:grid;gap:8px}
+.st-row{display:grid;grid-template-columns:124px 1fr auto;gap:8px;align-items:center}
+.st-row label b{display:block;font-size:13px}.st-row label small{font-size:10.5px;color:var(--muted)}
+.st-row .in{height:44px}
+.st-row .mini{height:44px}
+.st-row .mini:disabled{opacity:.45;cursor:default}
+@media(max-width:420px){.st-row{grid-template-columns:1fr auto}.st-row label{grid-column:1/-1}}

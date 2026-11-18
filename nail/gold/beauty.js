@@ -46,9 +46,10 @@ window.CPBeauty = (function () {
   function header(x) {
     const cfg = x.cfg;
     return `<header class="bp-bar"><a class="bp-name" href="#top">${esc(clean(cfg.title))}</a><span class="bp-tag">Sample</span>
-      <nav class="bp-nav" aria-label="Page"><a href="#services">Services</a><a href="#info">Policies</a><a href="#visit">Visit</a></nav>
+      <nav class="bp-nav" aria-label="Page"><a href="#services">${esc(T_(x, 'services', 'Services'))}</a><a href="#info">${esc(T_(x, 'infocards', 'Policies'))}</a><a href="#visit">${esc(T_(x, 'location', 'Visit'))}</a></nav>
       <button class="bp-icon" data-act="share" aria-label="Share"><svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></button>${bookBtn(x, null, 'Book', 'sm')}</header>`;
   }
+  const T_ = (x, id, def) => x.secTitle ? x.secTitle(id, def) : def;
   function hero(x) {
     const cfg = x.cfg, P = cfg.pro || {}, ph = (P.heroes || {})[x.tpl] || P.hero || cfg.cover; const pv = x.provider(cfg.booking_url || '');
     const meta = [cfg.availability, (cfg.location || {}).area && cfg.location.area.split('·')[0].trim()].filter(Boolean).join(' · ');
@@ -58,7 +59,7 @@ window.CPBeauty = (function () {
     return `<section class="bp-hero" id="top"><div class="bp-hero-ph">${img}${acc}</div>
       <div class="bp-hero-tx">${script}<p class="bp-kicker">${esc(P.kicker || cfg.studio_subline || '')}</p><h1 class="bp-h1">${esc(clean(cfg.title))}</h1>
         <p class="bp-lede">${esc(P.lede || cfg.tagline || '')}</p>${meta ? `<p class="bp-meta">${esc(meta)}</p>` : ''}
-        <div class="bp-cta">${bookBtn(x, null, 'Book now', 'lg')}<a class="bp-btn ghost lg" href="#services">Services &amp; prices</a></div><p class="bp-via">Booking opens ${esc(pv.name)}</p>
+        <div class="bp-cta">${bookBtn(x, null, 'Book now', 'lg')}<a class="bp-btn ghost lg" href="#services">${esc(T_(x, 'services', 'Services & prices'))}</a></div><p class="bp-via">Booking opens ${esc(pv.name)}</p>
         ${P.rating ? `<p class="bp-rate"><span aria-hidden="true">★★★★★</span> ${esc(P.rating)}</p>` : ''}</div></section>`;
   }
   function menu(x) {
@@ -69,8 +70,11 @@ window.CPBeauty = (function () {
       <ul class="bp-items">${c.items.map(s => `<li class="bp-item"><div class="bp-it"><b>${esc(s.name)}</b>${s.desc ? `<span>${esc(s.desc)}</span>` : s.note ? `<span>${esc(s.note)}</span>` : ''}<small>${esc([s.time, s.price].filter(Boolean).join(' · '))}</small></div>${bookBtn(x, s.book_url, 'Book', 'sm out')}</li>`).join('')}</ul></div>`).join('');
     return sec(x, 'services', TRADE[x.v].menu, (cfg.services_note || 'Sample prices') + ' · booking opens their booking page', tabs + `<div class="bp-menu">${groups}</div>`);
   }
+  /* round 8: page anchors -> section ids used for custom titles (hub "Section titles") */
+  const SID = { services: 'services', info: 'infocards', about: 'story', work: 'portfolio', reviews: 'testimonials', visit: 'location' };
   function sec(x, id, title, sub, inner, cls) {
-    const num = x.tpl === 'editorial' ? `<span class="bp-num">${String((x.n = (x.n || 0) + 1)).padStart(2, '0')}</span>` : '';
+    const sid = SID[id] || id, def = title; title = x.secTitle ? x.secTitle(sid, def) : def; (x.panels = x.panels || []).push({ id: sid, def, title });
+    const num = x.tpl === 'editorial' && x.nums !== false ? `<span class="bp-num">${String((x.n = (x.n || 0) + 1)).padStart(2, '0')}</span>` : '';
     return `<section class="bp-sec ${cls || ''}" id="${id}"><div class="bp-sh">${num}<h2>${esc(title)}</h2>${sub ? `<p>${esc(sub)}</p>` : ''}</div>${inner}</section>`;
   }
   function about(x) {
@@ -108,7 +112,9 @@ window.CPBeauty = (function () {
   function render(ctx) {
     const x = Object.assign({}, ctx, S, { n: 0 });
     const order = { clean: [menu, info, about, reviews, gallery, visit], luxe: [about, menu, gallery, reviews, info, visit], editorial: [gallery, menu, about, reviews, info, visit] }[x.tpl];
-    return header(x) + `<div class="bp-main">` + hero(x) + order.map(f => f(x)).join('') + closing(x) + `</div>` + ctx.footer();
+    const body = order.map(f => f(x)).join('');
+    window.CP_PANELS = { titled: true, numbered: x.tpl === 'editorial', list: x.panels || [] };
+    return header(x) + `<div class="bp-main">` + hero(x) + body + closing(x) + `</div>` + ctx.footer();
   }
   function wire() {
     if (!S) return;
