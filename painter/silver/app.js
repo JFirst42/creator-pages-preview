@@ -11,7 +11,7 @@
   if (HUB) { try { const o = JSON.parse(localStorage.getItem('cp-hub-' + (cfg.hub_key || cfg.slug)) || 'null'); if (o) HUB_KEYS.forEach(k => { if (o[k] !== undefined && o[k] !== null) cfg[k] = (k === 'studio' || k === 'brand' || k === 'pro') && cfg[k] ? Object.assign({}, cfg[k], o[k]) : o[k]; }); } catch (e) {} }
   /* hub photo swaps: 'local:<slot>' points at a downscaled upload kept in this browser (demo); anything else is a page-relative path */
   const HKEY = cfg.hub_key || cfg.slug; const resImg = v => typeof v === 'string' && v.startsWith('local:') ? (localStorage.getItem('cp-hub-img-' + HKEY + '-' + v.slice(6)) || '') : v;
-  if (HUB) { const P = cfg.photos || {}; if (P.cover) cfg.cover = resImg(P.cover) || cfg.cover; if (P.banner) cfg.studio = Object.assign({}, cfg.studio, { banner_photo: resImg(P.banner) });
+  if (HUB || cfg.live) { const P = cfg.photos || {}; if (P.cover) cfg.cover = resImg(P.cover) || cfg.cover; if (P.banner) cfg.studio = Object.assign({}, cfg.studio, { banner_photo: resImg(P.banner) });
     if (P.gallery && cfg.gallery) cfg.gallery = cfg.gallery.map((g, i) => P.gallery[i] ? Object.assign({}, g, { src: resImg(P.gallery[i]) || g.src }) : g);
     if (cfg.brand) ['logo', 'header'].forEach(k => { if (cfg.brand[k]) cfg.brand = Object.assign({}, cfg.brand, { [k]: resImg(cfg.brand[k]) }); });
     if (cfg.studio && cfg.studio.categories) cfg.studio = Object.assign({}, cfg.studio, { categories: cfg.studio.categories.map(k => k.photo ? Object.assign({}, k, { photo: resImg(k.photo) }) : k) });

@@ -21,3 +21,5 @@
 .tier-switcher a:focus-visible{outline:2px solid #ffd23f;outline-offset:-2px}
 body.has-tier-switcher{padding-bottom:calc(var(--tier-switch-h,64px) + 16px)!important}
 @media(max-width:360px){.tier-switcher a{font-size:10.5px;padding:0 4px}.ts-trade{padding-right:22px}}
+.tier-switcher-seg.tiers a{flex-direction:column;gap:2px}.tier-switcher-seg.tiers a small{font:700 10px/1 Outfit,system-ui,sans-serif;letter-spacing:.01em;text-transform:none;opacity:.85}
+.tier-switcher-seg.tiers a.pop:not([aria-current=page]){color:#f5cf5a;box-shadow:inset 0 0 0 1px rgba(245,207,90,.55)}

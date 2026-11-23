@@ -3,6 +3,7 @@
   if (window !== window.top) return;
   var s = document.querySelector('script[src*="switcher.js"]'); if (!s) return;
   var ROOT = new URL('.', s.src), rel = location.pathname.replace(/index\.html$/, '').slice(new URL(ROOT).pathname.length);
+  var PRICE = {"bronze": "$9/mo", "silver": "$19/mo", "gold": "$29/mo"};   /* round 10: monthly prices from template/pricing.json */
   var TRADES = [['music', 'Music'], ['tattoo', 'Tattoo'], ['lash', 'Lash'], ['barber', 'Barber'], ['hair', 'Hair'], ['nail', 'Nails'], ['painter', 'Painter'], ['streamer', 'Streamer'], ['hub', 'Creator hub']];
   var first = rel.split('/')[0]; var vert = TRADES.some(function (t) { return t[0] === first && t[0] !== 'music'; }) ? first : 'music';
   var sub = vert === 'music' ? rel : rel.replace(/^[a-z]+\//, '');
@@ -40,7 +41,8 @@
   if (vert !== 'hub') {
     var seg = document.createElement('div'); seg.className = 'tier-switcher-seg tiers'; row.appendChild(seg);
     [['bronze', 'Bronze'], ['silver', 'Silver'], ['gold', 'Gold']].forEach(function (t) {
-      var a = document.createElement('a'); a.href = new URL(pre + t[0] + '/?nointro=1', ROOT).href; a.textContent = t[1]; a.dataset.tier = t[0];
+      var a = document.createElement('a'); a.href = new URL(pre + t[0] + '/?nointro=1', ROOT).href; a.dataset.tier = t[0]; a.innerHTML = t[1] + '<small>' + PRICE[t[0]] + '</small>';
+      a.setAttribute('aria-label', t[1] + ', ' + PRICE[t[0]].replace('/mo', ' a month') + (t[0] === 'gold' ? ', most popular' : '')); if (t[0] === 'gold') a.classList.add('pop');
       if (cur === t[0]) a.setAttribute('aria-current', 'page');
       a.addEventListener('click', function () { try { sessionStorage.setItem('hh-preview-scroll', String(scrollY || 0)); } catch (e) {} });
       seg.appendChild(a); });

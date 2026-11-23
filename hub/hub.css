@@ -201,3 +201,12 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}td,th{padding:8px 6px
 .st-row .mini{height:44px}
 .st-row .mini:disabled{opacity:.45;cursor:default}
 @media(max-width:420px){.st-row{grid-template-columns:1fr auto}.st-row label{grid-column:1/-1}}
+
+/* round 10: notifications tab + deep-linked request */
+.nmodes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.nm{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer}
+.nm input{position:absolute;opacity:0;pointer-events:none}.nm b{font-size:13.5px}.nm small{font-size:11.5px;color:var(--mute,#aaa)}
+.nm.on{border-color:var(--acc,#ffd23f);box-shadow:0 0 0 1px var(--acc,#ffd23f) inset}.nm:focus-within{outline:2px solid var(--acc,#ffd23f);outline-offset:2px}
+.ioshint{margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(120,170,255,.1);border:1px solid rgba(120,170,255,.35);font-size:12.5px}
+.r.hl{border-color:var(--acc,#ffd23f);box-shadow:0 0 0 2px rgba(255,210,63,.35)}
+@media (max-width:620px){.nmodes{grid-template-columns:1fr}}

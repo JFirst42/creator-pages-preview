@@ -1,6 +1,8 @@
 /* Creator hub DEMO. No real auth: "Continue as ..." just picks a sample account. No passwords are asked for or stored.
    Edits are saved to localStorage (cp-hub-<account>) and the phone preview loads the real page with ?hub=1, which applies them.
-   All analytics, fans and requests are generated SAMPLE data. See README "Creator hub: architecture" for the real version. */
+   All analytics, fans and requests are generated SAMPLE data. See README "Creator hub: architecture" for the real version.
+   LIVE mode (round 9): when served by backend/ (window.CP_LIVE_HUB from /live-hub.js), sign-in is Whop OAuth (or its mock), the plan comes from
+   the server, edits persist server-side (and are mirrored to localStorage for the instant ?hub=1 preview), and Requests is the real inbox. */
 (function () {
   const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => [...(r || document).querySelectorAll(s)];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -10,7 +12,8 @@
   const rank = t => TIERS.indexOf(t);
   let D, S = { acct: null, tier: 'gold', tab: 'editor', range: 30, mode: 'simple', pvLook: '' };
   try { S = Object.assign(S, JSON.parse(sessionStorage.getItem('cp-hub-ui') || '{}')); } catch (e) {}
-  if (qs.get('acct')) S.acct = qs.get('acct'); if (qs.get('tier')) S.tier = qs.get('tier'); if (qs.get('tab')) S.tab = qs.get('tab');
+  const LIVE = window.CP_LIVE_HUB || null;
+  if (!LIVE && qs.get('acct')) S.acct = qs.get('acct'); if (!LIVE && qs.get('tier')) S.tier = qs.get('tier'); if (qs.get('tab')) S.tab = qs.get('tab'); if (qs.get('req')) S.req = qs.get('req'); // deep link from alert emails / push
   if (qs.has('logout')) S.acct = null;
   const saveUI = () => sessionStorage.setItem('cp-hub-ui', JSON.stringify(S));
   const A = () => D.accounts[S.acct];
@@ -18,28 +21,42 @@
   const KEY = () => 'cp-hub-' + S.acct;
   const loadEdits = () => { try { return JSON.parse(localStorage.getItem(KEY()) || 'null'); } catch (e) { return null; } };
   const cur = () => Object.assign({}, JSON.parse(JSON.stringify(A().base)), loadEdits() || {});
-  const lockBox = (need, what) => `<div class="lock"><span>${what}</span><button data-up="${need}">Upgrade to ${TL[need]}</button></div>`;
+  const priceOf = t => (window.CPPricing ? ' · ' + CPPricing.label(t) : '');   // round 10: JB's prices (template/pricing.json)
+  const lockBox = (need, what) => `<div class="lock"><span>${what}</span><button data-up="${need}">Upgrade to ${TL[need]}${priceOf(need)}</button></div>`;
 
-  fetch('data.json').then(r => r.json()).then(d => { D = d; if (S.acct && !D.accounts[S.acct]) S.acct = null; render(); });
+  Promise.all([fetch('data.json').then(r => r.json()), LIVE ? LIVE.boot() : null]).then(([d, me]) => { D = d;
+    if (LIVE) { const c = me && me.signedIn && me.tier && me.creators[0]; if (c && !D.accounts[c.acct] && LIVE.account) D.accounts[c.acct] = LIVE.account; // creators made by onboarding
+      S.acct = c && D.accounts[c.acct] ? c.acct : null;
+      if (S.acct) { S.tier = me.tier; try { localStorage.setItem(KEY(), JSON.stringify(LIVE.edits || {})); } catch (e) {} } }
+    else if (S.acct && !D.accounts[S.acct]) S.acct = null;
+    render(); });
 
   function render() {
     saveUI();
     const root = $('#hub');
     if (!S.acct) { root.innerHTML = login(); return; }
     const a = A();
-    const showReq = a.service || a.takes_bookings;
+    const showReq = a.service || a.takes_bookings || (LIVE && LIVE.requests.length > 0);
     if (S.tab === 'requests' && !showReq) S.tab = 'editor';
     const newReq = (reqState().filter(r => r.status === 'new')).length;
-    root.innerHTML = `<div class="wrap"><div class="hd"><div class="who"><img src="${esc(a.avatar)}" alt=""><div><b>${esc(a.label)}</b><small>${esc(a.sub)} · demo account</small></div></div>
-      <div class="tseg" role="group" aria-label="Plan (demo switcher)">${TIERS.map(t => `<button data-t="${t}" class="${S.tier === t ? 'on' : ''}">${TL[t]}</button>`).join('')}</div>
-      <button class="out" data-act="logout">Log out (demo)</button></div>
-      <nav class="tabs">${[['editor', 'Page editor'], ['analytics', 'Analytics'], ...(showReq ? [['requests', 'Requests']] : []), ['fans', 'Fans'], ['billing', 'Plan & billing']].map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}"${S.tab === k ? ' aria-current="page"' : ''}${k === 'requests' && newReq && rank(S.tier) >= 1 ? ` aria-label="Requests, ${newReq} new"` : ''}>${l}${k === 'requests' && newReq && rank(S.tier) >= 1 ? `<span class="n" aria-hidden="true">${newReq}</span>` : ''}</button>`).join('')}</nav>
-      <section id="pane">${({ editor, analytics, requests, fans, billing })[S.tab]()}</section></div>`;
+    root.innerHTML = `<div class="wrap"><div class="hd"><div class="who"><img src="${esc(a.avatar)}" alt=""><div><b>${esc(a.label)}</b><small>${esc(a.sub)} · ${LIVE ? (LIVE.account ? 'your page · test mode' : 'sample page · test mode') : 'demo account'}</small></div></div>
+      ${LIVE ? `<div class="tseg live" role="status" aria-label="Your plan"><button class="on" disabled>${TL[S.tier]} plan</button></div><span class="fine" id="livesave" style="margin:0 6px">${esc(LIVE.status || (LIVE.me.authMode === 'mock' ? 'Test mode · mock Whop sign-in' : 'Signed in with Whop'))}</span>`
+        : `<div class="tseg" role="group" aria-label="Plan (demo switcher)">${TIERS.map(t => `<button data-t="${t}" class="${S.tier === t ? 'on' : ''}">${TL[t]}</button>`).join('')}</div>`}
+      <button class="out" data-act="logout">${LIVE ? 'Log out' : 'Log out (demo)'}</button></div>
+      <nav class="tabs">${[['editor', 'Page editor'], ['analytics', 'Analytics'], ...(showReq ? [['requests', 'Requests']] : []), ['fans', 'Fans'], ...(LIVE ? [['notify', 'Notifications']] : []), ['billing', 'Plan & billing']].map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}"${S.tab === k ? ' aria-current="page"' : ''}${k === 'requests' && newReq && rank(S.tier) >= 1 ? ` aria-label="Requests, ${newReq} new"` : ''}>${l}${k === 'requests' && newReq && rank(S.tier) >= 1 ? `<span class="n" aria-hidden="true">${newReq}</span>` : ''}</button>`).join('')}</nav>
+      <section id="pane">${({ editor, analytics, requests, fans, notify: LIVE ? notifyTab : editor, billing: window.CPPricing ? billingNew : billing })[S.tab]()}</section></div>`;
     wire();
+    if (S.req && S.tab === 'requests') { const el = document.getElementById('rq-' + S.req); if (el) { el.scrollIntoView({ block: 'center' }); el.setAttribute('tabindex', '-1'); el.focus({ preventScroll: true }); } }
   }
 
   function login() {
     const a = D.accounts['holy-hails'];
+    if (LIVE) { const me = LIVE.me || {}, mock = me.authMode === 'mock';
+      const msg = !me.signedIn ? '' : !me.tier ? `<p><b>Signed in as ${esc(me.user.name || me.user.id)}</b>, but there's no active Creator Pages membership on Whop yet.</p>` : `<p><b>Signed in as ${esc(me.user.name || me.user.id)}</b>. You don't have a page yet; the intake flow creates one.</p>`;
+      return `<div class="login"><div class="box"><div class="logo">Creator<i>Pages</i> hub</div><div class="badge">${mock ? 'Test mode · mock Whop' : 'Sign in with Whop'}</div>${msg}
+        <p>Sign in with the Whop account that holds your Creator Pages membership. Your plan (Bronze, Silver or Gold) is read from Whop; there's no separate password here.</p>
+        <a class="bigbtn" href="/auth/${me.signedIn ? 'logout' : 'login?next=/hub/'}" style="justify-content:center;text-decoration:none">${me.signedIn ? 'Sign out' : 'Sign in with Whop' + (mock ? ' (mock)' : '')}</a>
+        ${mock ? '<p class="fine" style="margin:16px 0 0">Mock mode: a fake Whop page lets you pick a sample account and plan. Nothing touches whop.com.</p>' : ''}</div></div>`; }
     return `<div class="login"><div class="box"><div class="logo">Creator<i>Pages</i> hub</div><div class="badge">Demo · no real login</div>
       <p>This is a clickable demo of the logged-in dashboard. There is no password and nothing is checked. Your edits stay in this browser.</p>
       <button class="bigbtn" data-login="holy-hails"><img src="${esc(a.avatar)}" alt="">Continue as Holy Hails (demo)</button>
@@ -56,8 +73,8 @@
     const links = (c.links || []).map((l, i) => `<div class="row" style="margin-bottom:6px"><select class="in" data-li="${i}" data-k="platform" style="flex:0 0 118px">${[...new Set([l.platform, ...PLAT])].map(p => `<option ${p === l.platform ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select><input class="in" type="url" data-li="${i}" data-k="url" value="${esc(l.url)}" placeholder="https://..."><button class="mini" data-act="rmlink" data-i="${i}" aria-label="Remove">✕</button></div>`).join('');
     const adv = f.hubAdvanced && S.mode === 'advanced', simple = f.hubAdvanced && !adv;
     const pvq = S.pvLook ? '&look=' + S.pvLook : '';
-    return `<div class="ed"><div class="pv"><div class="phone"><iframe id="pvf" title="Live preview" src="${esc(a.pages[S.tier])}?hub=1&nointro=1${pvq}"></iframe></div>
-        <div class="pv-side"><b>Live preview</b><span>${TL[S.tier]} page · updates as you type</span><span class="pill">Preview only</span><span>Edits apply only in this browser's preview (?hub=1). The public page doesn't change in the demo.</span><button class="mini" data-act="reset">Reset edits</button><a class="mini" style="display:grid;place-items:center;text-decoration:none;color:var(--text)" href="${esc(a.pages[S.tier])}?hub=1" target="_blank">Open full page ↗</a></div></div>
+    return `<div class="ed"><div class="pv"><div class="phone"><iframe id="pvf" title="Live preview" src="${esc(LIVE ? '/p/' + LIVE.slug + '/' : a.pages[S.tier])}?hub=1&nointro=1${pvq}"></iframe></div>
+        <div class="pv-side"><b>Live preview</b><span>${TL[S.tier]} page · updates as you type</span>${LIVE ? `<span class="pill">Saves to your page</span><span>Edits save to the server and show on <a href="/p/${esc(LIVE.slug)}/" target="_blank" rel="noopener">your public page</a> on the next load.</span>` : `<span class="pill">Preview only</span><span>Edits apply only in this browser's preview (?hub=1). The public page doesn't change in the demo.</span>`}<button class="mini" data-act="reset">Reset edits</button><a class="mini" style="display:grid;place-items:center;text-decoration:none;color:var(--text)" href="${esc(LIVE ? '/p/' + LIVE.slug + '/' : a.pages[S.tier] + '?hub=1')}" target="_blank">Open full page ↗</a></div></div>
       <div style="display:grid;gap:12px">
       ${f.hubAdvanced ? `<div class="modeseg" role="group" aria-label="Editor mode"><button data-mode="simple" class="${simple ? 'on' : ''}"><b>Simple</b><small>Look, style, photos</small></button><button data-mode="advanced" class="${adv ? 'on' : ''}"><b>Advanced</b><small>Fonts, colors, cards, order, blocks</small></button></div>` : ''}
       <div class="box"><h3>Look <small>${f.looks ? 'how your whole page is dressed' : 'Gold option'}</small></h3>${lookUI(c)}</div>
@@ -93,7 +110,7 @@
   const saveSt = (c, patch, now) => save({ studio: Object.assign({}, stNow(c), patch) }, now);
   const brandNow = c => Object.assign({}, ST().brand || {}, c.brand || {});
   const presetObj = id => (ST().presets || []).find(p => p.id === id) || (ST().presets || [])[0] || {};
-  const imgUrl = v => !v ? '' : v.startsWith('local:') ? (localStorage.getItem('cp-hub-img-' + S.acct + '-' + v.slice(6)) || '') : v.startsWith('data:') ? v : ST().photoBase + v;
+  const imgUrl = v => !v ? '' : /^(\/|https:)/.test(v) ? v : v.startsWith('local:') ? (localStorage.getItem('cp-hub-img-' + S.acct + '-' + v.slice(6)) || '') : v.startsWith('data:') ? v : ST().photoBase + v;
   let fontsLoaded = {};
   function loadFonts(list) { const need = list.filter(f => f && !fontsLoaded[f]); if (!need.length) return; need.forEach(f => fontsLoaded[f] = 1);
     const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?' + need.map(f => 'family=' + f.replace(/ /g, '+')).join('&') + '&display=swap'; document.head.appendChild(l); }
@@ -131,11 +148,11 @@
     return `<div class="presets">${P.map(p => `<button type="button" class="pre${p.id === cur ? ' on' : ''}" data-preset="${esc(p.id)}" style="background:${esc(p.bg)};color:${esc(p.text)};border-color:${esc(p.line)}"><i style="font-family:'${esc(p.script)}',cursive;color:${esc(p.acc)}">${esc(p.label.split(' ')[0])}</i><span>${[p.bg2, p.acc, p.acc2].map(x => `<u style="background:${esc(x)}"></u>`).join('')}</span><small>${esc(p.label)}</small></button>`).join('')}</div>`;
   }
   function photosUI(c) {
-    const st = ST(), P = c.photos || {}, lib = st.photoLib || [], n = Math.min(st.galleryCount || 0, 6);
+    const st = ST(), P = c.photos || {}, lib = [...(LIVE ? (LIVE.media || []).filter(m => m.kind === 'image').map(m => m.url) : []), ...(st.photoLib || [])], n = Math.min(st.galleryCount || 0, 6);
     const slot = (k, label, v, def) => `<button type="button" class="ps" data-slot="${k}"><span style="background-image:url('${esc(imgUrl(v) || imgUrl(def))}')"></span><small>${label}</small></button>`;
     const slots = [slot('banner', 'Header banner', P.banner, lib[0]), slot('cover', 'Cover / art', P.cover, lib[0])];
     for (let i = 0; i < n; i++) slots.push(slot('g' + i, 'Gallery ' + (i + 1), (P.gallery || [])[i], lib.filter(x => x.startsWith('img/'))[i] || lib[i]));
-    return `<div class="pslots">${slots.join('')}</div><div class="plib" id="plib" hidden><div class="plib-h"><b id="plibt">Choose a photo</b><button class="mini" data-act="plibx">Done</button></div><div class="plib-g">${lib.map(x => `<button type="button" data-pick="${esc(x)}" style="background-image:url('${esc(imgUrl(x))}')" aria-label="${esc(x)}"></button>`).join('')}<label class="plib-up">+ Upload<input type="file" accept="image/*" data-upimg></label></div><p class="fine">Uploads are shrunk and kept in this browser only (demo). The real version stores them with your page.</p></div>`;
+    return `<div class="pslots">${slots.join('')}</div><div class="plib" id="plib" hidden><div class="plib-h"><b id="plibt">Choose a photo</b><button class="mini" data-act="plibx">Done</button></div><div class="plib-g">${lib.map(x => `<button type="button" data-pick="${esc(x)}" style="background-image:url('${esc(imgUrl(x))}')" aria-label="${esc(x)}"></button>`).join('')}<label class="plib-up">+ Upload<input type="file" accept="image/*" data-upimg></label></div><p class="fine">${LIVE ? `Uploads go to your page's storage, resized for the web (JPG, PNG or WebP up to 12 MB).${LIVE.mediaLimits ? ` ${(LIVE.media || []).filter(m => m.kind === 'image').length} of ${LIVE.mediaLimits.image} photos used.` : ''}` : 'Uploads are shrunk and kept in this browser only (demo). The real version stores them with your page.'}</p></div>`;
   }
   function fontsUI(c) {
     const st = stNow(c), FL = ST().fonts || {}, p = presetObj(st.preset), fo = st.fonts || {}, co = st.colors || {};
@@ -168,6 +185,11 @@
       <p class="fine">Shows when the Look is "My brand". Colors are picked from your logo/header. Prices and policies are still typed text, not baked into images.</p>`;
   }
   function shrink(file, max, cb) { const rd = new FileReader(); rd.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)); const cv = document.createElement('canvas'); cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); const x = cv.getContext('2d'); x.drawImage(im, 0, 0, cv.width, cv.height); cb(cv.toDataURL(/png/.test(file.type) ? 'image/png' : 'image/jpeg', .82)); }; im.src = rd.result; }; rd.readAsDataURL(file); }
+  // LIVE: the original goes to the server (resized there, stored in R2) and we keep its /media/ link. Demo: shrink in the browser + localStorage.
+  function getImg(file, max, slot, cb) {
+    if (LIVE) { toast('Uploading…'); LIVE.upload(file, 'image').then(m => { cb(m.url); toast('Uploaded ✓'); }).catch(e => toast('Not uploaded: ' + e.message)); return; }
+    shrink(file, max, d => { const v = putImg(slot, d); if (v) { cb(v); toast('Added to the preview (stays in this browser)'); } });
+  }
   function putImg(slot, data) { try { localStorage.setItem('cp-hub-img-' + S.acct + '-' + slot, data); return 'local:' + slot; } catch (e) { toast('That image is too big for this browser-only preview'); return null; } }
   function sectionsUI(c) {
     const a = A(), names = D.sections, rel = a.relevant;
@@ -232,7 +254,7 @@
   }
   let pvT;
   function save(patch, now) {
-    const e = Object.assign(loadEdits() || {}, patch); localStorage.setItem(KEY(), JSON.stringify(e));
+    const e = Object.assign(loadEdits() || {}, patch); localStorage.setItem(KEY(), JSON.stringify(e)); if (LIVE) LIVE.queueSave(e);
     clearTimeout(pvT); pvT = setTimeout(() => { const f = $('#pvf'); if (f) { const y = (() => { try { return f.contentWindow.scrollY; } catch (x) { return 0; } })(); f.onload = () => { try { f.contentWindow.scrollTo(0, y); } catch (x) {} }; f.contentWindow.location.reload(); } }, now ? 0 : 450);
   }
 
@@ -263,11 +285,19 @@
     const locked = rank(S.tier) < rank(need);
     return `<div class="c${locked ? ' locked' : ''}"><h4>${title}${right ? `<small>${right}</small>` : ''}</h4><div class="body">${body}</div>${locked ? `<div class="up">🔒 <span><b>${TL[need]}</b> shows ${title.toLowerCase()}</span><button class="mini acc" data-up="${need}" style="margin-left:auto">Upgrade</button></div>` : ''}</div>`;
   }
+  function liveStats() {
+    const tot = {}, days = new Set(); (LIVE.stats || []).forEach(r => { days.add(r.day); const k = r.ev + (r.k ? ' · ' + r.k : ''); tot[k] = (tot[k] || 0) + r.n; });
+    const rows = Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 12), views = Object.entries(tot).filter(([k]) => k.startsWith('page_view')).reduce((p, [, n]) => p + n, 0);
+    return `<div class="card" style="padding:14px;margin-bottom:14px"><div class="row" style="justify-content:space-between;align-items:center"><b>Your page, live counts (last 30 days)</b><button class="mini" data-act="streload">Refresh</button></div>
+      <p class="fine" style="margin:4px 0 10px">Anonymous daily counters: no cookies, no visitor IDs, no IP addresses stored. Hub previews aren't counted.</p>
+      ${rows.length ? `<div class="kp"><div class="k"><b>${views}</b><small>Page views</small></div><div class="k"><b>${rows.reduce((p, r) => p + r[1], 0)}</b><small>All events</small></div><div class="k"><b>${days.size}</b><small>Active days</small></div></div>
+        <table style="width:100%;margin-top:8px;font-size:14px">${rows.map(([k, n]) => `<tr><td>${esc(k)}</td><td style="text-align:right">${n}</td></tr>`).join('')}</table>` : '<p class="fine">No visits yet. Open your public page in a new tab to see counts here.</p>'}</div>`;
+  }
   function analytics() {
     const x = sample(), a = A(), rngd = rank(S.tier) >= 1 ? S.range : 30, d = x.daily.slice(-rngd), v = d.reduce((p, q) => p + q, 0);
     let local = {}; try { local = JSON.parse(localStorage.getItem('cp-stats-' + S.acct) || '{}'); } catch (e) {}
     const lk = Object.entries(local);
-    return `<div class="toolbar"><span class="sample">Sample data</span>${rank(S.tier) >= 1 ? `<div class="rng">${[7, 30].map(n => `<button data-rng="${n}" class="${S.range === n ? 'on' : ''}">${n} days</button>`).join('')}</div>` : '<span class="fine">Last 30 days</span>'}${S.tier === 'gold' ? '<button class="mini acc" data-act="csv">Export CSV</button>' : ''}</div>
+    return `${LIVE ? liveStats() : ''}<div class="toolbar"><span class="sample">Sample data</span>${rank(S.tier) >= 1 ? `<div class="rng">${[7, 30].map(n => `<button data-rng="${n}" class="${S.range === n ? 'on' : ''}">${n} days</button>`).join('')}</div>` : '<span class="fine">Last 30 days</span>'}${S.tier === 'gold' ? '<button class="mini acc" data-act="csv">Export CSV</button>' : ''}</div>
       <div class="kp"><div class="k"><b>${v.toLocaleString()}</b><small>Total views</small><em>▲ 18%</em></div><div class="k"><b>${Math.round(v * x.ctr / 100).toLocaleString()}</b><small>Total clicks</small><em>▲ 9%</em></div>
       ${rank(S.tier) >= 1 ? `<div class="k"><b>${Math.round(x.fans * rngd / 30).toLocaleString()}</b><small>Fan signups</small><em>▲ 31%</em></div><div class="k"><b>${x.ctr}%</b><small>Click-through</small></div>` : ''}</div>
       ${S.tier === 'bronze' ? `<div class="lock" style="margin-bottom:12px"><span>Bronze shows total views and clicks. Silver adds top links, sources, a 7/30-day chart and fan signups; Gold shows everything.</span><button data-up="silver">See Silver</button></div>` : ''}
@@ -300,19 +330,31 @@
   const dl = (name, text, type) => { const l = document.createElement('a'); l.href = URL.createObjectURL(new Blob([text], { type: type || 'text/csv' })); l.download = name; l.click(); };
 
   /* ---------------- requests inbox (SAMPLE) ---------------- */
-  function reqState() { const a = A(); let st = {}; try { st = JSON.parse(localStorage.getItem('cp-hub-req-' + S.acct) || '{}'); } catch (e) {} return (a.requests || []).map(r => Object.assign({}, r, st[r.id] || {})); }
-  function setReq(id, patch) { let st = {}; try { st = JSON.parse(localStorage.getItem('cp-hub-req-' + S.acct) || '{}'); } catch (e) {} st[id] = Object.assign(st[id] || {}, patch); localStorage.setItem('cp-hub-req-' + S.acct, JSON.stringify(st)); }
+  const tomorrowNoon = () => { const d = new Date(Date.now() + 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T12:00`; };
+  const fmtET = (v, o) => { try { return new Date(v).toLocaleString('en-US', Object.assign({ timeZone: 'America/Detroit' }, o)); } catch (e) { return ''; } };
+  function liveReq(r) { const d1 = (r.fields.find(f => f[0] === 'First choice') || [])[1];
+    return { id: r.id, name: r.name, email: r.email, service: r.service || (r.mode === 'book' ? 'Booking inquiry' : 'Request'), received: fmtET(r.created_at, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET',
+      status: r.status, proposed: r.status === 'proposed' && r.proposed_at ? new Date(r.proposed_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric' }) : '',
+      suggest: r.when_at || r.proposed_at || (d1 && /^\d{4}-\d{2}-\d{2}$/.test(d1) ? d1 + 'T12:00' : tomorrowNoon()), fields: r.fields.map(f => [f[0], f[1], '']), refs: [] }; }
+  function reqState() { if (LIVE) return LIVE.requests.map(liveReq); const a = A(); let st = {}; try { st = JSON.parse(localStorage.getItem('cp-hub-req-' + S.acct) || '{}'); } catch (e) {} return (a.requests || []).map(r => Object.assign({}, r, st[r.id] || {})); }
+  function setReq(id, patch) { if (LIVE) { LIVE.setReq(id, patch).then(() => render()).catch(e => { toast('Not saved: ' + e.message); LIVE.reload('requests').then(render); }); return; } let st = {}; try { st = JSON.parse(localStorage.getItem('cp-hub-req-' + S.acct) || '{}'); } catch (e) {} st[id] = Object.assign(st[id] || {}, patch); localStorage.setItem('cp-hub-req-' + S.acct, JSON.stringify(st)); }
   function requests() {
     const a = A(), L = reqState();
     if (S.tier === 'bronze') return lockBox('silver', a.service ? 'Bronze sends people to your booking app (Book now button). Request forms are Silver; the full intake + this inbox are Gold.' : 'Booking requests are Silver+; the inbox with accept / decline / propose is Gold.');
     const full = S.tier === 'gold';
-    return `<div class="toolbar"><span class="sample">Sample requests</span><span class="fine">${full ? 'Accept sends a confirmation + .ics; nothing is booked on Booksy/Square for you.' : 'Silver: short requests land here and in your email.'}</span></div>
+    return `<div class="toolbar"><span class="sample">${LIVE ? 'Your inbox · test mode' : 'Sample requests'}</span>${LIVE ? '<button class="mini" data-act="rqreload">Refresh</button>' : ''}<span class="fine">${LIVE ? (full ? 'Accept / decline / propose gives you a reply to send yourself (we never email your clients) + an .ics.' : 'Requests land here, and we tell you by email (and phone, if you turn it on).') : full ? 'Accept sends a confirmation + .ics; nothing is booked on Booksy/Square for you.' : 'Silver: short requests land here and in your email.'}</span></div>
       ${full ? '' : lockBox('gold', 'Accept / decline / propose a time, confirmation emails and .ics invites are Gold.')}
-      <div class="rq" style="margin-top:10px">${L.map(r => `<article class="r" data-rid="${r.id}"><div class="r-h"><div><b>${esc(r.name)}</b><small>${esc(r.service)} · received ${esc(r.received)}</small></div><span class="st ${r.status}">${r.status}${r.proposed ? ' · ' + esc(r.proposed) : ''}</span></div>
+      <div class="rq" style="margin-top:10px">${L.map(r => `<article class="r${S.req === r.id ? ' hl' : ''}" data-rid="${r.id}" id="rq-${esc(r.id)}"><div class="r-h"><div><b>${esc(r.name)}</b><small>${esc(r.service)} · received ${esc(r.received)}</small></div><span class="st ${r.status}">${r.status}${r.proposed ? ' · ' + esc(r.proposed) : ''}</span></div>
         <dl>${r.fields.filter(f => full || f[2] !== 'gold').map(f => `<dt>${esc(f[0])}</dt><dd>${esc(f[1])}</dd>`).join('')}</dl>
         ${full && r.refs && r.refs.length ? `<div class="refs">${r.refs.map(s => `<img src="${esc(s)}" alt="Reference">`).join('')}</div>` : ''}
-        ${full ? `<div class="acts"><button class="mini ok" data-ra="accept">Accept</button><button class="mini" data-ra="propose">Propose time</button><button class="mini no" data-ra="decline">Decline</button>${r.status === 'accepted' ? '<button class="mini" data-ra="ics">.ics</button>' : ''}</div>
-        <div class="prop"><input class="in" type="datetime-local" value="${esc(r.suggest)}"><button class="mini acc" data-ra="send-prop">Send</button></div>` : ''}</article>`).join('')}</div>`;
+        ${full ? `<div class="acts"><button class="mini ok" data-ra="accept">Accept</button><button class="mini" data-ra="propose">Propose time</button><button class="mini no" data-ra="decline">Decline</button>${r.status === 'accepted' || (LIVE && r.status === 'proposed') ? '<button class="mini" data-ra="ics">.ics</button>' : ''}</div>
+        <div class="prop"><input class="in" type="datetime-local" value="${esc(r.suggest)}"><button class="mini acc" data-ra="send-prop">Send</button></div>` : ''}</article>`).join('')}</div>
+      ${LIVE && !L.length ? '<p class="fine" style="margin-top:10px">No requests yet. Submit the booking form on your page to test it.</p>' : ''}${LIVE ? outbox() : ''}`;
+  }
+  function outbox() {
+    const o = LIVE.outbox || []; if (!o.length) return '';
+    return `<details class="card" style="margin-top:14px;padding:12px"><summary><b>Email outbox</b> <small>(${o.length}) · test mode: nothing goes to real people</small></summary>
+      ${o.map(m => `<div style="border-top:1px solid rgba(255,255,255,.1);padding:8px 0"><small>${esc(fmtET(m.created_at, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))} ET · to ${esc(m.to_addr)} · <b>${esc(m.status.replace(/_/g, ' '))}</b></small><div>${esc(m.subject)}</div></div>`).join('')}</details>`;
   }
   function ics(r) {
     const s = (r.when || r.suggest).replace(/[-:]/g, '') + '00', d = new Date(r.when || r.suggest); const e = new Date(d.getTime() + (r.hours || 2) * 36e5);
@@ -320,8 +362,29 @@
     return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CreatorPages demo//EN', 'BEGIN:VEVENT', `UID:${r.id}@creatorpages.example`, `DTSTAMP:${f(new Date())}`, `DTSTART;TZID=America/Detroit:${s.slice(0, 15)}`, `DTEND;TZID=America/Detroit:${f(e)}`, `SUMMARY:${r.service} with ${A().label} (SAMPLE)`, `DESCRIPTION:Demo invite. Deposit is paid on the artist's booking page.`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
   }
   function mail(to, subject, body) {
-    document.body.insertAdjacentHTML('beforeend', `<div class="modal" data-close="1"><div class="mc"><div class="row" style="justify-content:space-between;margin-bottom:8px"><b>Email preview</b><button class="mini" data-close="1">Close</button></div>
-      <div class="mail-h"><small>From</small> ${esc(A().label)} via CreatorPages<br><small>To</small> ${esc(to)}<br><small>Subject</small> ${esc(subject)}</div><div class="mail-b">${body}</div><p class="fine">Demo preview · no email was sent</p></div></div>`);
+    document.body.insertAdjacentHTML('beforeend', `<div class="modal" data-close="1"><div class="mc"><div class="row" style="justify-content:space-between;margin-bottom:8px"><b>${LIVE ? 'Reply to send yourself' : 'Email preview'}</b><button class="mini" data-close="1">Close</button></div>
+      <div class="mail-h">${LIVE ? '' : `<small>From</small> ${esc(A().label)} via CreatorPages<br>`}<small>To</small> ${esc(to)}<br><small>Subject</small> ${esc(subject)}</div><div class="mail-b">${body}</div>
+      ${LIVE ? `<div class="row" style="gap:8px;margin-top:8px"><button class="mini acc" data-copyreply="1">Copy reply</button><a class="mini" style="display:grid;place-items:center;text-decoration:none;color:var(--text)" href="mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.replace(/<\/p>/g, '\n\n').replace(/<[^>]+>/g, '').trim())}">Open in my email</a></div>` : ''}
+      <p class="fine">${LIVE ? 'Not sent. Creator Pages never emails your clients; send this from your own email or DMs.' : 'Demo preview · no email was sent'}</p></div></div>`);
+  }
+
+  /* ---------------- notifications (LIVE, round 10) ---------------- */
+  const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  function notifyTab() {
+    const n = LIVE.settings; if (!n) { LIVE.loadSettings().then(render).catch(e => toast('Could not load settings: ' + e.message)); return '<p class="fine">Loading…</p>'; }
+    const modes = [['instant', 'Right away', 'One email per new request or message'], ['digest', 'Daily summary', 'One email each morning (' + esc(n.digestAt) + ') if anything came in'], ['off', 'Off', 'Check the hub yourself']];
+    const pushOn = LIVE.pushState === 'on', sup = 'serviceWorker' in navigator && 'PushManager' in window;
+    const push = !n.push.allowed ? lockBox('silver', 'Phone notifications (web push) are on Silver and Gold.') : `<div class="box"><h3>Phone notifications <small>${pushOn ? 'on for this device' : 'off on this device'}</small></h3>
+      <p class="fine">A notification on this phone or computer when a request or message comes in. Nothing goes to your clients.</p>
+      ${isIOS() && !standalone() ? `<div class="ioshint"><b>iPhone / iPad:</b> tap <span aria-label="Share">Share ⬆︎</span> → <b>Add to Home Screen</b>, open the hub from that icon, then turn this on (iOS 16.4 or later).</div>` : ''}
+      ${!sup && !(isIOS() && !standalone()) ? '<p class="fine">This browser does not support web push.</p>' : ''}
+      <div class="sw-row"><b>Notify this device</b><label class="sw"><input type="checkbox" id="pushtg" aria-label="Notify this device" ${pushOn ? 'checked' : ''} ${sup ? '' : 'disabled'}><i></i></label></div>
+      <div class="row" style="gap:8px;margin-top:8px"><button class="mini" data-act="pushtest" ${n.push.devices ? '' : 'disabled'}>Send a test notification</button><span class="fine">${n.push.devices} device${n.push.devices === 1 ? '' : 's'} on${n.push.mode === 'log' ? ' · test mode: pushes are logged, not delivered' : ''}</span></div></div>`;
+    return `<div class="box" style="margin-bottom:12px"><h3>Email me about new requests</h3><p class="fine">To ${esc(n.email || 'your Whop email')} (your Whop email). We never email the people who contact you.</p>
+      <div class="nmodes" role="radiogroup" aria-label="Email notifications">${modes.map(([k, l, d]) => `<label class="nm${n.notify_mode === k ? ' on' : ''}"><input type="radio" name="nmode" value="${k}" ${n.notify_mode === k ? 'checked' : ''}><b>${l}</b><small>${d}</small></label>`).join('')}</div>
+      <p class="fine">${n.mailMode === 'log' ? 'Test mode: emails are written to the outbox (Requests tab), not sent.' : 'Test mode: emails go only to our test inbox.'}</p></div>${push}
+      <p class="fine" style="margin-top:10px">Text messages (SMS) may come later as a paid add-on.</p>`;
   }
 
   /* ---------------- fans ---------------- */
@@ -341,6 +404,10 @@
     return `<div class="box" style="margin-bottom:12px"><h3>Your plan: ${TL[S.tier]} <small>demo</small></h3><p class="fine" style="margin-bottom:10px">Membership, payment and invoices live on Whop. This hub never sees your card.</p><button class="bigbtn" data-act="whop" style="height:46px;font-size:14px">Manage plan on Whop ↗</button></div>
       <div class="plans">${TIERS.map(t => `<div class="plan${t === S.tier ? ' cur' : ''}"><h4>${TL[t]}</h4><span class="fine">${esc(D.tierTaglines[t])}</span><ul>${(t === 'bronze' ? [] : [`Everything in ${TL[TIERS[rank(t) - 1]]}`]).concat(top(t)).map(x => `<li>${esc(x)}</li>`).join('')}</ul>${t === S.tier ? '<span class="pill">Current plan</span>' : `<button class="mini acc" data-up="${t}">${rank(t) > rank(S.tier) ? 'Upgrade' : 'Switch'} on Whop</button>`}</div>`).join('')}</div>
       <p class="fine" style="margin-top:10px">Prices are set on Whop (placeholder: no live Whop link in this demo).</p>`;
+  }
+  function billingNew() {   // round 10: pricing cards with the monthly / yearly toggle; Gold = "Most popular"
+    return `<div class="box" style="margin-bottom:12px"><h3>Your plan: ${TL[S.tier]}${window.CPPricing ? ' · ' + CPPricing.label(S.tier) : ''} <small>${LIVE ? 'from Whop' : 'demo'}</small></h3><p class="fine" style="margin-bottom:10px">Membership, payment and invoices live on Whop. This hub never sees your card.</p><button class="bigbtn" data-act="whop" style="height:46px;font-size:14px">Manage plan on Whop ↗</button></div>
+      <div id="billpricing"></div><p class="fine" style="margin-top:10px">${LIVE ? 'Test mode: upgrade buttons don\'t open a checkout yet.' : 'Demo: upgrade buttons preview the plan here; real upgrades happen on Whop.'}</p>`;
   }
 
   /* ---------------- round 8: section titles + "Show section numbers" ----------------
@@ -368,6 +435,7 @@
 
   /* ---------------- wiring ---------------- */
   function wire() {
+    const bp = $('#billpricing'); if (bp && window.CPPricing) CPPricing.mount(bp, { current: S.tier, note: 'Prices in USD · billed on Whop.', cta: (t, per, st) => st.current ? '<button class="cpp-btn" disabled>Current plan</button>' : rank(t) > rank(S.tier) ? `<button class="cpp-btn" data-up="${t}">Upgrade to ${TL[t]}</button>` : `<button class="cpp-btn" data-up="${t}">Switch to ${TL[t]}</button>` });
     const P = $('#pane');
     const pvf = $('#pvf'); if (pvf) { pvf.addEventListener('load', fillTitles); stIds = ''; try { if (pvf.contentWindow.CP_PANELS) fillTitles(); } catch (e) {} }
     P.addEventListener('input', e => {
@@ -392,16 +460,19 @@
     });
     P.addEventListener('change', e => {
       const t = e.target, c = cur();
+      if (LIVE && t.name === 'nmode') { LIVE.saveSettings({ notify_mode: t.value }).then(() => { render(); toast(t.value === 'off' ? 'Email alerts off' : t.value === 'digest' ? 'Daily summary on' : 'Emails right away'); }).catch(x => toast('Not saved: ' + x.message)); return; }
+      if (LIVE && t.id === 'pushtg') { t.disabled = true; (t.checked ? LIVE.pushOn() : LIVE.pushOff()).then(() => LIVE.loadSettings()).then(() => { render(); toast(LIVE.pushState === 'on' ? 'Notifications on for this device' : 'Notifications off for this device'); })
+        .catch(x => { toast(x.message); LIVE.loadSettings().then(render); }); return; }
       if (t.dataset.nums !== undefined) { save({ display: Object.assign({}, c.display || {}, { sectionNumbers: t.checked }) }, true); toast(t.checked ? 'Section numbers on' : 'Section numbers hidden'); return; }
       if (t.dataset.st !== undefined) { if (!cleanTitle(t.value)) { t.value = ''; saveTitle(t.dataset.st, '', true); } return; }
       if (t.dataset.font) { const fo = Object.assign({}, stNow(c).fonts || {}); if (t.value) fo[t.dataset.font] = t.value; else delete fo[t.dataset.font]; saveSt(c, { fonts: fo }, true); return; }
       if (t.dataset.bfont) { const b = brandNow(c), fo = Object.assign({}, b.fonts || {}); if (t.value) fo[t.dataset.bfont] = t.value; else delete fo[t.dataset.bfont]; save({ brand: Object.assign({}, b, { fonts: fo }) }, true); return; }
       if (t.dataset.drop === 'off') { const d = Object.assign({}, ST().drop || {}, stNow(c).drop || {}, { off: t.checked }); saveSt(c, { drop: d }, true); return; }
-      if (t.dataset.upimg !== undefined && t.files[0]) { const slot = S.slot; shrink(t.files[0], 1100, d => { const v = putImg(slot + '-up', d); if (v) pickPhoto(slot, v); }); return; }
-      if (t.dataset.brandimg && t.files[0]) { const k = t.dataset.brandimg; shrink(t.files[0], k === 'logo' ? 500 : 1100, d => { const b = brandNow(c);
-          if (k === 'gfx') { const n = (b.graphics || []).length; const v = putImg('gfx' + n + '-' + Date.now() % 1e5, d); if (v) save({ brand: Object.assign({}, b, { graphics: [...(b.graphics || []), { src: v, alt: 'Uploaded graphic', caption: 'Your upload' }] }) }, true); }
-          else { const v = putImg('brand-' + k, d); if (v) save({ brand: Object.assign({}, b, { [k]: v }) }, true); }
-          render(); toast('Added to the preview (stays in this browser)'); }); return; }
+      if (t.dataset.upimg !== undefined && t.files[0]) { const slot = S.slot; getImg(t.files[0], 1100, slot + '-up', v => { pickPhoto(slot, v); if (LIVE) render(); }); return; }
+      if (t.dataset.brandimg && t.files[0]) { const k = t.dataset.brandimg; const n = (brandNow(c).graphics || []).length; getImg(t.files[0], k === 'logo' ? 500 : 1100, k === 'gfx' ? 'gfx' + n + '-' + Date.now() % 1e5 : 'brand-' + k, v => { const b = brandNow(cur());
+          if (k === 'gfx') save({ brand: Object.assign({}, b, { graphics: [...(b.graphics || []), { src: v, alt: 'Uploaded graphic', caption: 'Your upload' }] }) }, true);
+          else save({ brand: Object.assign({}, b, { [k]: v }) }, true);
+          render(); }); return; }
       if (t.dataset.tg) save({ section_toggles: Object.assign({}, c.section_toggles || {}, { [t.dataset.tg]: t.checked }) }, true);
       if (t.dataset.son !== undefined) { const L = c.sections.filter(s => allowedSet().has(s.id)); L[+t.dataset.son].on = t.checked; save({ sections: L }, true); }
       if (t.name === 'herobg') save({ hero_bg: t.value }, true);
@@ -409,6 +480,7 @@
       if (t.id === 'mfile' && t.files[0]) { const fl = t.files[0];
         if (!/\.(mp3|m4a)$/i.test(fl.name) && !/^audio\/(mpeg|mp4|x-m4a|mp3)$/.test(fl.type)) { toast('Use an mp3 or m4a file'); t.value = ''; return; }
         if (fl.size > 8 * 1024 * 1024) { toast('Max 8 MB. The real upload trims it to a 30s loop.'); t.value = ''; return; }
+        if (LIVE) { toast('Uploading track…'); LIVE.upload(fl, 'audio').then(m => { save({ music: Object.assign({}, musicNow(cur()), { mode: 'upload', local: false, src: m.url, fname: fl.name.slice(0, 60), title: musicNow(cur()).title || fl.name.replace(/\.[^.]+$/, '').slice(0, 60) }) }, true); render(); toast('Track uploaded ✓'); }).catch(e => toast('Not uploaded: ' + e.message)); return; }
         const rd = new FileReader(); rd.onload = () => { try { localStorage.setItem(AKEY(), rd.result); } catch (x) { toast('Too big for this browser-only preview (about 3 MB max here). The real upload trims it on the server.'); return; }
           save({ music: Object.assign({}, musicNow(c), { mode: 'upload', local: true, fname: fl.name.slice(0, 60), title: musicNow(c).title || fl.name.replace(/\.[^.]+$/, '').slice(0, 60) }) }, true); render(); toast('Track added to the preview (stays in this browser)'); }; rd.readAsDataURL(fl); }
       if (t.dataset.tipon) { const m = (c.tip_methods || []).map(x => x.type === t.dataset.tipon ? Object.assign({}, x, { on: t.checked }) : x); if (t.checked && !m.some(x => x.type === t.dataset.tipon)) { toast('Add a handle to turn this on'); t.checked = false; } save({ tip_methods: m }, true); }
@@ -441,18 +513,21 @@
         if (b.dataset.mmode === 'link' && !nm.url) nm.url = base.url || ''; save({ music: nm }, true); render(); }
       if (b.dataset.acc) { save({ accent: b.dataset.acc }, true); $$('.acard').forEach(x => x.classList.toggle('on', x === b)); }
       if (b.dataset.act === 'palreset') { save({ palette_override: null }, true); render(); }
-      if (b.dataset.act === 'reset') { localStorage.removeItem(KEY()); try { localStorage.removeItem(AKEY()); } catch (x) {} render(); toast('Edits cleared'); }
+      if (b.dataset.act === 'reset') { localStorage.removeItem(KEY()); if (LIVE) LIVE.queueSave({}); try { localStorage.removeItem(AKEY()); } catch (x) {} render(); toast('Edits cleared'); }
       if (b.dataset.act === 'csv') csv();
+      if (b.dataset.act === 'rqreload' && LIVE) LIVE.reload('requests').then(render);
+      if (b.dataset.act === 'pushtest' && LIVE) LIVE.pushTest().then(r => toast(r.results && r.results.length ? 'Test sent (' + r.results.map(x => x.status).join(', ') + ')' : 'No devices on')).catch(x => toast(x.message));
       if (b.dataset.act === 'fancsv') { dl(`${S.acct}-fans-SAMPLE.csv`, [['contact', 'channel', 'joined', 'source'], ...window._fans].map(r => r.map(x => `"${x}"`).join(',')).join('\n')); toast('Fan list CSV downloaded'); }
       if (b.dataset.act === 'whop') toast('Placeholder: opens the creator\'s Whop membership page');
       if (b.dataset.rng) { S.range = +b.dataset.rng; render(); }
+      if (b.dataset.act === 'streload' && LIVE) LIVE.reload('stats').then(render);
       const ra = b.dataset.ra; if (ra) {
         const id = b.closest('[data-rid]').dataset.rid, r = reqState().find(x => x.id === id);
-        if (ra === 'accept') { setReq(id, { status: 'accepted', when: r.suggest, proposed: '' }); render(); mail(r.email, `Booked: ${r.service} (request accepted)`, `<p>Hi ${esc(r.name.split(' ')[0])},</p><p>Your request is accepted for <b>${esc(new Date(r.suggest).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))} ET</b>. A calendar invite (.ics) is attached.</p><p>To hold the spot, pay the deposit on ${esc(A().booking_label)} (link). Nothing is charged by this page.</p><p>Reminders: 2 days and 2 hours before${r.remind ? '' : ' (they opted out)'}.</p>`); }
+        if (ra === 'accept') { setReq(id, { status: 'accepted', when: r.suggest, proposed: '' }); render(); mail(r.email, `Booked: ${r.service} (request accepted)`, `<p>Hi ${esc(r.name.split(' ')[0])},</p><p>Your request is accepted for <b>${esc(new Date(r.suggest).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))} ET</b>. ${LIVE ? 'I\'ll send you a calendar invite.' : 'A calendar invite (.ics) is attached.'}</p><p>To hold the spot, pay the deposit on ${esc(A().booking_label)} (link). Nothing is charged by this page.</p><p>Reminders: 2 days and 2 hours before${r.remind ? '' : ' (they opted out)'}.</p>`); }
         if (ra === 'decline') { setReq(id, { status: 'declined', proposed: '' }); render(); mail(r.email, 'About your request', `<p>Hi ${esc(r.name.split(' ')[0])},</p><p>Thanks for reaching out. I can't take this one right now. Watch the page for the next opening.</p>`); }
         if (ra === 'propose') b.closest('.r').querySelector('.prop').classList.toggle('on');
         if (ra === 'send-prop') { const v = b.previousElementSibling.value; setReq(id, { status: 'proposed', proposed: new Date(v).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric' }), suggest: v }); render(); mail(r.email, 'New time for your request', `<p>Hi ${esc(r.name.split(' ')[0])},</p><p>Could you do <b>${esc(new Date(v).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))} ET</b>? Reply yes and I'll send the confirmation and the deposit link.</p>`); }
-        if (ra === 'ics') { dl(`${id}.ics`, ics(r), 'text/calendar'); toast('.ics downloaded (sample)'); }
+        if (ra === 'ics') { if (LIVE) { location.href = LIVE.icsUrl(id); toast('.ics downloading'); } else { dl(`${id}.ics`, ics(r), 'text/calendar'); toast('.ics downloaded (sample)'); } }
       }
     });
     // drag reorder (Gold) — pointer events so it works on touch too
@@ -474,14 +549,16 @@
     render(); toast('Photo swapped'); }
   function allowedSet() { const a = A(), rel = a.relevant; return new Set([...rel.core, ...rel.optional, ...(a.takes_bookings ? rel.bookings || [] : [])]); }
   document.addEventListener('click', e => {
+    const cr = e.target.closest('[data-copyreply]'); if (cr) { const m = cr.closest('.mc'); const txt = [...m.querySelectorAll('.mail-h, .mail-b')].map(x => x.innerText.trim()).join('\n\n'); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast('Reply copied'), () => toast('Select the text to copy it')); return; }
     const b = e.target.closest('[data-login],[data-t],[data-tab],[data-act=logout],[data-up],[data-close],[data-mode]'); if (!b) return;
     if (b.dataset.mode) { S.mode = b.dataset.mode; render(); return; }
     if (b.dataset.close && e.target !== b && !e.target.closest('button[data-close]')) return;
     if (b.dataset.close) { b.closest('.modal').remove(); return; }
     if (b.dataset.login) { S.acct = b.dataset.login; S.tier = D.accounts[S.acct].defaultTier; S.tab = 'editor'; render(); toast('Signed in (demo, no real login)'); }
-    if (b.dataset.t) { S.tier = b.dataset.t; render(); }
+    if (b.dataset.t && !LIVE) { S.tier = b.dataset.t; render(); }
     if (b.dataset.tab) { S.tab = b.dataset.tab; render(); }
-    if (b.dataset.act === 'logout') { S.acct = null; render(); }
+    if (b.dataset.act === 'logout') { if (LIVE) { location.href = '/auth/logout'; return; } S.acct = null; render(); }
+    if (b.dataset.up && LIVE) { toast(`${TL[b.dataset.up]}${priceOf(b.dataset.up)} is changed on Whop (test mode: no checkout yet)`); return; }
     if (b.dataset.up) { S.tier = b.dataset.up; render(); toast(`Previewing ${TL[b.dataset.up]} (demo). Real upgrades happen on Whop.`); }
   });
 })();
