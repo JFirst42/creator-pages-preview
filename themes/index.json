@@ -1,0 +1,10 @@
+{
+ "_doc": "Published Diamond theme versions (source hash). A published version is immutable: change = new version.",
+ "themes": {
+  "aurelia-deco@1.0.0": {
+   "source_sha256": "53eadf12aedafef97b16da20b682379d8d1412619579fe025109102331984d47",
+   "api": 1,
+   "name": "Aurelia Deco"
+  }
+ }
+}

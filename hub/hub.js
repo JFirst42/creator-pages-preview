@@ -77,7 +77,8 @@
         <div class="pv-side"><b>Live preview</b><span>${TL[S.tier]} page · updates as you type</span>${LIVE ? `<span class="pill">Saves to your page</span><span>Edits save to the server and show on <a href="/p/${esc(LIVE.slug)}/" target="_blank" rel="noopener">your public page</a> on the next load.</span>` : `<span class="pill">Preview only</span><span>Edits apply only in this browser's preview (?hub=1). The public page doesn't change in the demo.</span>`}<button class="mini" data-act="reset">Reset edits</button><a class="mini" style="display:grid;place-items:center;text-decoration:none;color:var(--text)" href="${esc(LIVE ? '/p/' + LIVE.slug + '/' : a.pages[S.tier] + '?hub=1')}" target="_blank">Open full page ↗</a></div></div>
       <div style="display:grid;gap:12px">
       ${f.hubAdvanced ? `<div class="modeseg" role="group" aria-label="Editor mode"><button data-mode="simple" class="${simple ? 'on' : ''}"><b>Simple</b><small>Look, style, photos</small></button><button data-mode="advanced" class="${adv ? 'on' : ''}"><b>Advanced</b><small>Fonts, colors, cards, order, blocks</small></button></div>` : ''}
-      <div class="box"><h3>Look <small>${f.looks ? 'how your whole page is dressed' : 'Gold option'}</small></h3>${lookUI(c)}</div>
+      ${a.theme ? `<div class="box diamond-box" id="thbox">${themeUI(c)}</div>` : ''}
+      ${a.theme && S.tier === 'gold' ? '' : `<div class="box"><h3>Look <small>${f.looks ? 'how your whole page is dressed' : 'Gold option'}</small></h3>${lookUI(c)}</div>`}
       <div class="box" id="stbox"><h3>Section titles <small>rename them or keep ours</small></h3><div id="sectitles"><p class="fine">Reading your sections from the preview…</p></div></div>
       ${f.looks && lookNow(c) === 'studio' ? `<div class="box"><h3>Style <small>${esc(A().verticalLabel)} presets</small></h3>${presetUI(c)}</div>` : ''}
       ${f.looks && lookNow(c) === 'pro' && ST().pro ? `<div class="box"><h3>Template &amp; motion <small>pick one of each</small></h3>${proUI(c)}</div>` : ''}
@@ -101,6 +102,30 @@
       <div class="box"><h3>Hero accent <small>${f.accentPicker ? 'pick one for your trade' : f.accentDefault ? 'default for your trade' : ''}</small></h3>${accentUI(c)}</div>
       <div class="box"><h3>Tip button <small>links out · no payments on the page</small></h3>${f.tipButton ? tipUI(c) : lockBox('silver', 'The Tip button is Silver and Gold.')}</div>`}
       </div></div>`;
+  }
+
+  /* ---------------- round 11: Diamond custom theme (done for you) ----------------
+     The design (CSS, fonts, layout) is locked to a pinned theme version and changed only by JB (admin). The creator edits the
+     TEXT of the theme's custom sections here (cfg.theme_data); the page escapes every value. Needs Gold: below Gold it pauses. */
+  const TD_ROWS = 6;
+  function themeUI(c) {
+    const th = A().theme, td = c.theme_data || {};
+    const head = `<h3>◆ Diamond design <small>${esc(th.name)} · v${esc(th.version)} (pinned)</small></h3>`;
+    if (S.tier !== 'gold') return head + `<p class="fine">Your custom design is <b>paused</b> because it needs Gold. Your page shows the standard ${TL[S.tier]} look; your content, messages and bookings are untouched. Back on Gold, the design comes back as it was.</p>` + lockBox('gold', 'Diamond designs run on Gold.');
+    const fld = (sid, k, type, v) => type.startsWith('list:') ? (() => { const cols = type.slice(5).split('|');
+        return `<div class="f"><label>${esc(k.replace(/_/g, ' '))} <small>one per line · ${esc(cols.join(' | '))}</small></label><textarea class="in" rows="${TD_ROWS}" data-tdl="${esc(sid)}|${esc(k)}|${esc(cols.join(','))}">${esc((Array.isArray(v) ? v : []).map(r => cols.map(cn => (r || {})[cn] || '').join(' | ')).join('\n'))}</textarea></div>`; })()
+      : `<div class="f"><label>${esc(k.replace(/_/g, ' '))}${type === 'url' ? ' <small>https://, mailto: or #book</small>' : ''}</label><input class="in" ${type === 'url' ? 'data-tdu="1"' : ''} data-td="${esc(sid)}|${esc(k)}" maxlength="${type === 'url' ? 300 : 120}" value="${esc(v || '')}"></div>`;
+    return head + `<p class="fine">Designed for you by ${esc(th.designer || 'JB')}. The design is locked to this version, so platform updates never change it; JB makes design changes. You can edit the text in your custom sections:</p>` +
+      th.sections.map(s => `<details class="tdsec" open><summary><b>${esc(s.name)}</b> <small>custom section</small></summary>${Object.entries(s.fields).map(([k, type]) => fld(s.id, k, type, (td[s.id] || {})[k])).join('')}</details>`).join('') +
+      `<p class="fine">Turn these sections on/off or move them in <b>Sections</b> below. Messages, booking requests, alerts and analytics work exactly the same.</p>`;
+  }
+  function saveTD(t) {
+    const c = cur(), td = JSON.parse(JSON.stringify(c.theme_data || {}));
+    if (t.dataset.td) { const [sid, k] = t.dataset.td.split('|'); if (t.dataset.tdu && t.value && !/^(https:\/\/\S+|mailto:\S+|#[a-z0-9-]{0,30})$/i.test(t.value)) { t.style.borderColor = '#ff6b6b'; return; } t.style.borderColor = '';
+      td[sid] = Object.assign({}, td[sid] || {}, { [k]: t.value.slice(0, 300) }); }
+    else { const [sid, k, cols] = t.dataset.tdl.split('|'); const C = cols.split(',');
+      td[sid] = Object.assign({}, td[sid] || {}, { [k]: t.value.split('\n').filter(x => x.trim()).slice(0, 12).map(line => { const parts = line.split('|'); return Object.fromEntries(C.map((cn, i) => [cn, (parts[i] || '').trim().slice(0, 300)])); }) }); }
+    save({ theme_data: td });
   }
 
   /* ---------------- round 5: Looks (Art | Studio | My brand) ---------------- */
@@ -441,6 +466,7 @@
     P.addEventListener('input', e => {
       const t = e.target, c = cur();
       if (t.dataset.st !== undefined) { saveTitle(t.dataset.st, t.value); return; }
+      if (t.dataset.td || t.dataset.tdl) { saveTD(t); return; }
       if (t.type === 'url') { const okU = !t.value || /^(https:\/\/[^\s]+|#placeholder[\w-]*)$/i.test(t.value); t.style.borderColor = okU ? '' : '#ff6b6b'; if (!okU) return; }
       if (t.tagName === 'SELECT' && t.dataset.k === 'tagline') return;
       if (t.dataset.card !== undefined) { const L = JSON.parse(JSON.stringify(stNow(c).cards || ST().cards || [])), k = L[+t.dataset.card], v = t.value;

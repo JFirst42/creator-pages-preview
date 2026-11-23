@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Diamond · request a custom design (demo)</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Unbounded:wght@700;800&display=swap">
+<style>
+:root{--bg:#0a0f1c;--card:#121a2c;--line:rgba(191,233,255,.18);--text:#eef4ff;--muted:#9fb0c8;--ice:#bfe9ff;--vio:#c9b8ff;--ok:#2fd28a;--bad:#ff7b7b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(90% 50% at 100% 0%,rgba(191,233,255,.12),transparent 60%),radial-gradient(80% 50% at 0% 30%,rgba(201,184,255,.10),transparent 60%),var(--bg);color:var(--text);font:16px/1.5 Outfit,system-ui,sans-serif}
+.demo-banner{text-align:center;height:20px;font:700 10px/20px system-ui;letter-spacing:.08em;text-transform:uppercase;color:#1a1300;background:repeating-linear-gradient(135deg,#ffd23f 0 12px,#ffc400 12px 24px)}
+main{max-width:780px;margin:0 auto;padding:22px 16px 80px}
+h1{font:800 clamp(26px,6vw,40px)/1.1 Unbounded,system-ui;margin:16px 0 6px;background:linear-gradient(90deg,#fff,var(--ice) 45%,var(--vio));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:#cfdcf0;margin:0 0 18px}.lead b{color:#fff}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 20px;padding:0;list-style:none;font-size:12.5px;color:var(--muted)}.steps li{padding:5px 10px;border:1px solid var(--line);border-radius:99px}
+fieldset{border:1px solid var(--line);border-radius:18px;background:rgba(18,26,44,.8);margin:0 0 14px;padding:16px 16px 14px}
+legend{font-weight:800;font-size:15px;padding:0 6px;color:var(--ice)}legend small{color:var(--muted);font-weight:600}
+label.f{display:block;margin:0 0 10px;font-weight:700;font-size:14px}label.f small{color:var(--muted);font-weight:600}
+.in{display:block;width:100%;margin-top:5px;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:#0c1324;color:var(--text);font:inherit;font-size:16px}
+.in:focus{outline:2px solid var(--ice);outline-offset:1px}textarea.in{min-height:110px;resize:vertical}
+.row{display:grid;gap:10px;grid-template-columns:1fr}@media(min-width:620px){.row{grid-template-columns:1fr 1fr}}
+.pk{display:grid;gap:10px;grid-template-columns:1fr}@media(min-width:620px){.pk{grid-template-columns:repeat(2,1fr)}}
+.pk label{position:relative;display:block;padding:14px;border-radius:14px;border:1px solid var(--line);background:#0c1324;cursor:pointer}
+.pk input{position:absolute;opacity:0}.pk b{display:block}.pk .amt{font:800 22px/1.2 Outfit}.pk .amt small{font-size:12px;color:var(--muted);font-weight:600}.pk span.d{display:block;font-size:12.5px;color:var(--muted)}
+.pk label:has(input:checked){border-color:var(--ice);box-shadow:0 0 0 2px rgba(191,233,255,.5),0 10px 30px -14px rgba(191,233,255,.6)}
+.pk label:has(input:focus-visible){outline:2px solid var(--ice);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chips label{position:relative}.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips span{display:inline-flex;align-items:center;min-height:42px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:#0c1324;font-weight:700;font-size:14px;cursor:pointer;user-select:none}
+.chips input:checked+span{background:linear-gradient(135deg,#fff,var(--ice) 45%,var(--vio));color:#0b1020;border-color:transparent}
+.chips input:focus-visible+span{outline:2px solid var(--ice);outline-offset:2px}
+.links .in{margin-bottom:6px}.mini{min-height:38px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--ice);font:700 13px Outfit;cursor:pointer}
+.refs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.refs figure{margin:0;position:relative}.refs img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.refs button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:#000c;color:#fff;cursor:pointer}
+.file{display:flex;align-items:center;justify-content:center;min-height:52px;border:1px dashed rgba(191,233,255,.5);border-radius:12px;color:var(--ice);font-weight:700;cursor:pointer}.file input{position:absolute;opacity:0;width:1px;height:1px}
+.count{float:right;color:var(--muted);font-weight:600;font-size:12px}.count.over{color:var(--bad)}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px}.chk input{width:20px;height:20px;margin-top:2px;flex:none}
+.addons{display:grid;gap:6px}.addons label{display:flex;gap:10px;align-items:center;font-size:14px}.addons small{color:var(--muted);margin-left:auto}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.submit{width:100%;min-height:54px;border:0;border-radius:14px;font:800 17px Outfit;color:#0b1020;background:linear-gradient(135deg,#fff,var(--ice) 45%,var(--vio));cursor:pointer;box-shadow:0 14px 40px -14px rgba(191,233,255,.8)}
+.submit[disabled]{opacity:.6}.fine{font-size:12.5px;color:var(--muted)}
+.errs{display:none;border:1px solid var(--bad);color:#ffd5d5;background:rgba(255,123,123,.08);border-radius:12px;padding:10px 14px;margin:0 0 12px}.errs.on{display:block}
+.done{display:none;text-align:center;border:1px solid var(--ice);border-radius:20px;padding:28px 18px;background:rgba(18,26,44,.9)}.done.on{display:block}
+.done h2{font:800 24px Unbounded;margin:6px 0}.done pre{text-align:left;white-space:pre-wrap;font-size:12.5px;color:var(--muted);background:#0c1324;border-radius:12px;padding:12px;max-height:260px;overflow:auto}
+a{color:var(--ice)}
+</style>
+</head>
+<body>
+<div class="demo-banner" role="note">Demo / preview · not public · nothing is sent from this page</div>
+<main>
+  <a href="../compare.html#diamond" class="fine">← Back to plans</a>
+  <h1>◆ Diamond · book a design call</h1>
+  <p class="lead">Tell JB what you want and he'll set up a short design call. <b>This is a request, not a purchase.</b> Nothing is charged here; the quote and any deposit are handled after the call. Prices shown are suggested.</p>
+  <ul class="steps" aria-label="How it works"><li>1 · Request</li><li>2 · Design call</li><li>3 · Moodboard</li><li>4 · Design</li><li>5 · 2 revision rounds</li><li>6 · Launch (about 5–10 business days)</li></ul>
+  <div class="errs" id="errs" role="alert"></div>
+  <form id="df" novalidate>
+    <input type="hidden" name="t" id="t0">
+    <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
+
+    <fieldset><legend>1 · Package <small>you can change this on the call</small></legend><div class="pk" id="pk"></div></fieldset>
+
+    <fieldset><legend>2 · About you</legend>
+      <div class="row"><label class="f">Your name<input class="in" name="name" autocomplete="name" required maxlength="80"></label>
+      <label class="f">Email<input class="in" name="email" type="email" autocomplete="email" required maxlength="254"></label></div>
+      <div class="row"><label class="f">Creator / brand name or handle<input class="in" name="handle" maxlength="80" placeholder="@yourname"></label>
+      <label class="f">What you do<select class="in" name="vertical" id="vertical"></select></label></div>
+      <label class="f">Current page <small>optional · https://</small><input class="in" name="current_page" type="url" inputmode="url" maxlength="300" placeholder="https://"></label>
+    </fieldset>
+
+    <fieldset><legend>3 · Goals <small>pick any</small></legend><div class="chips" data-name="goals"></div></fieldset>
+    <fieldset><legend>4 · Style <small>pick up to 4</small></legend><div class="chips" data-name="style" data-max="4"></div></fieldset>
+    <fieldset><legend>5 · Sections you want custom <small>pick any</small></legend><div class="chips" data-name="sections"></div>
+      <p class="fine">Diamond includes up to 2 custom sections, Diamond+ up to 5. Messages, booking requests, alerts, analytics and your hub stay the same.</p></fieldset>
+
+    <fieldset><legend>6 · Scope + timing</legend>
+      <div class="row"><label class="f">Pages<select class="in" name="pages" id="pages"></select></label>
+      <label class="f">Timeline<select class="in" name="timeline" id="timeline"></select></label></div>
+      <div class="row"><label class="f">Gold membership <small>needed to keep it live · 1st month included</small><select class="in" name="gold" id="gold"></select></label>
+      <label class="f">Design call<select class="in" name="call" id="call"></select></label></div>
+      <div class="f" style="font-weight:700;font-size:14px;margin-bottom:6px">Add-ons you might want <small style="color:var(--muted)">(suggested prices)</small></div><div class="addons" id="addons"></div>
+    </fieldset>
+
+    <fieldset><legend>7 · Inspiration</legend>
+      <label class="f" for="l0">Inspiration links <small>up to 5 · https:// (sites, posts, Pinterest boards)</small></label>
+      <div class="links" id="links"><input class="in" id="l0" name="links" type="url" inputmode="url" maxlength="300" placeholder="https://"></div>
+      <button type="button" class="mini" id="addlink">+ Add a link</button>
+      <div style="margin-top:14px"><label class="file">Add reference images (up to 4) <input type="file" id="refs" accept="image/jpeg,image/png,image/webp" multiple></label>
+      <div class="refs" id="refprev"></div><p class="fine" id="refnote">JPG, PNG or WebP, up to 8 MB each.</p></div>
+    </fieldset>
+
+    <fieldset><legend>8 · Anything to add?</legend>
+      <label class="f">Tell us anything: colors you love, pages you hate, songs that feel like your brand <span class="count" id="cnt">0 / 500</span>
+      <textarea class="in" name="notes" id="notes" maxlength="600" placeholder="Optional"></textarea></label>
+    </fieldset>
+
+    <label class="chk" style="margin:4px 0 14px"><input type="checkbox" name="ack" required> I understand this is a request, not a purchase. Prices are suggested and quoted after the call. No payment happens on this site.</label>
+    <button class="submit" type="submit" id="send">Request my design call</button>
+    <p class="fine" id="modeNote" style="text-align:center"></p>
+  </form>
+  <div class="done" id="done" role="status" aria-live="polite"></div>
+</main>
+<script src="pricing.js"></script>
+<script>
+(function () {
+  var LIVE = window.CP_DIAMOND_LIVE || null, D = (window.CPPricing && CPPricing.data.diamond) || null;
+  var $ = function (s) { return document.querySelector(s); }, esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var money = function (n) { return '$' + n; };
+  var O = {
+    vertical: [['music', 'Musician'], ['streamer', 'Streamer'], ['creator', 'Creator / influencer'], ['tattoo', 'Tattoo artist'], ['lash', 'Lash tech'], ['hair', 'Hair stylist'], ['nail', 'Nail tech'], ['barber', 'Barber'], ['art', 'Artist / painter'], ['other', 'Other']],
+    goals: [['bookings', 'More bookings'], ['merch', 'Sell merch'], ['fans', 'Grow fans / email list'], ['premium', 'Look premium'], ['launch', 'Release / launch'], ['press', 'Press / EPK'], ['residency', 'Residency / tour']],
+    style: [['luxury', 'Luxury'], ['minimal', 'Minimal'], ['bold', 'Bold / loud'], ['retro', 'Retro / vintage'], ['deco', 'Art deco'], ['y2k', 'Y2K'], ['moody', 'Dark / moody'], ['soft', 'Soft / pastel'], ['editorial', 'Editorial'], ['playful', 'Playful']],
+    sections: [['hero', 'Custom hero'], ['residency', 'Residency / tour dates'], ['press', 'Press quotes'], ['gallery', 'Gallery'], ['services', 'Services menu'], ['merch', 'Merch showcase'], ['video', 'Video feature'], ['story', 'Story / bio'], ['reviews', 'Reviews'], ['faq', 'FAQ']],
+    pages: [['1', 'One page'], ['2-3', '2–3 linked pages (Diamond+)']],
+    timeline: [['flexible', 'Flexible'], ['month', 'Within a month'], ['2weeks', 'Within 2 weeks'], ['asap', 'ASAP (rush add-on)']],
+    gold: [['yes', 'Already on Gold'], ['later', 'Will upgrade with Diamond'], ['no', 'Not yet / not sure']],
+    call: [['video', 'Video call'], ['phone', 'Phone call'], ['written', 'Written intake only']]
+  };
+  ['vertical', 'pages', 'timeline', 'gold', 'call'].forEach(function (k) { $('#' + k).innerHTML = O[k].map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + '</option>'; }).join(''); });
+  document.querySelectorAll('.chips').forEach(function (c) { var n = c.dataset.name; c.innerHTML = O[n].map(function (o) { return '<label><input type="checkbox" name="' + n + '" value="' + o[0] + '"><span>' + esc(o[1]) + '</span></label>'; }).join('');
+    if (c.dataset.max) c.addEventListener('change', function (e) { var on = c.querySelectorAll('input:checked'); if (on.length > +c.dataset.max) { e.target.checked = false; } }); });
+  var pk = (D ? D.packages : []).map(function (p, i) { return '<label><input type="radio" name="package" value="' + p.id + '"' + (p.standard ? ' checked' : '') + '><b>' + esc(p.label) + '</b><div class="amt">' + money(p.price) + ' <small>one-time · suggested</small></div><span class="d">About ' + esc(p.days) + ' business days · ' + p.revisions + ' revision round' + (p.revisions === 1 ? '' : 's') + '</span><span class="d">' + esc(p.includes.slice(0, 2).join(' · ')) + '</span></label>'; }).join('');
+  $('#pk').innerHTML = pk + '<label><input type="radio" name="package" value="unsure"><b>Not sure yet</b><span class="d">We\'ll figure it out on the call.</span></label>';
+  $('#addons').innerHTML = (D ? D.addons : []).map(function (a) { return '<label><input type="checkbox" name="addons" value="' + a.id + '"> ' + esc(a.label) + '<small>' + money(a.price) + '</small></label>'; }).join('');
+  $('#t0').value = Date.now();
+  $('#addlink').addEventListener('click', function () { var L = document.querySelectorAll('#links .in'); if (L.length >= 5) return; var i = document.createElement('input'); i.className = 'in'; i.name = 'links'; i.type = 'url'; i.inputMode = 'url'; i.maxLength = 300; i.placeholder = 'https://'; i.setAttribute('aria-label', 'Inspiration link ' + (L.length + 1)); $('#links').appendChild(i); i.focus(); if (L.length + 1 >= 5) this.hidden = true; });
+  var notes = $('#notes'); notes.addEventListener('input', function () { var n = [...notes.value].length; $('#cnt').textContent = n + ' / 500'; $('#cnt').classList.toggle('over', n > 500); });
+  var files = [];
+  function drawRefs() { $('#refprev').innerHTML = ''; files.forEach(function (f, i) { var fig = document.createElement('figure'), im = document.createElement('img'); im.src = URL.createObjectURL(f); im.alt = 'Reference ' + (i + 1); var b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.setAttribute('aria-label', 'Remove reference ' + (i + 1)); b.onclick = function () { files.splice(i, 1); drawRefs(); }; fig.appendChild(im); fig.appendChild(b); $('#refprev').appendChild(fig); }); $('#refnote').textContent = files.length + ' of 4 images · JPG, PNG or WebP, up to 8 MB each.'; }
+  $('#refs').addEventListener('change', function () { [].slice.call(this.files).forEach(function (f) { if (files.length < 4 && /^image\/(jpeg|png|webp)$/.test(f.type) && f.size <= 8 * 1048576) files.push(f); }); this.value = ''; drawRefs(); });
+  $('#modeNote').textContent = LIVE ? 'Test mode: your request goes to JB\'s private queue. No email is sent and nothing is charged.' : 'Preview only: on this demo site nothing is sent or uploaded.';
+  function check(fd) {
+    var e = [];
+    if (!fd.get('name').trim()) e.push('Add your name.');
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(fd.get('email').trim())) e.push('Add a valid email.');
+    var cp = fd.get('current_page').trim(); if (cp && !/^https:\/\/\S+$/i.test(cp)) e.push('Current page must start with https://');
+    fd.getAll('links').forEach(function (l, i) { if (l.trim() && !/^https:\/\/\S+$/i.test(l.trim())) e.push('Inspiration link ' + (i + 1) + ' must start with https://'); });
+    if ([...fd.get('notes')].length > 500) e.push('"Anything to add" is over 500 characters.');
+    if (!fd.get('ack')) e.push('Tick the box to confirm this is a request, not a purchase.');
+    return e;
+  }
+  function showErr(list) { var b = $('#errs'); b.innerHTML = list.length ? '<b>Fix these:</b><ul>' + list.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : ''; b.classList.toggle('on', !!list.length); if (list.length) b.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  function summary(fd) { var lab = function (k, v) { var o = (O[k] || []).filter(function (x) { return x[0] === v; })[0]; return o ? o[1] : v; };
+    var P = D ? D.packages.filter(function (p) { return p.id === fd.get('package'); })[0] : null;
+    return ['Package: ' + (P ? P.label + ' (' + money(P.price) + ' suggested)' : 'Not sure yet'), 'Name: ' + fd.get('name'), 'Email: ' + fd.get('email'), 'Handle: ' + (fd.get('handle') || '–'), 'What you do: ' + lab('vertical', fd.get('vertical')),
+      'Goals: ' + (fd.getAll('goals').map(function (v) { return lab('goals', v); }).join(', ') || '–'), 'Style: ' + (fd.getAll('style').map(function (v) { return lab('style', v); }).join(', ') || '–'),
+      'Sections: ' + (fd.getAll('sections').map(function (v) { return lab('sections', v); }).join(', ') || '–'), 'Pages: ' + lab('pages', fd.get('pages')), 'Timeline: ' + lab('timeline', fd.get('timeline')),
+      'Gold: ' + lab('gold', fd.get('gold')), 'Call: ' + lab('call', fd.get('call')), 'Links: ' + (fd.getAll('links').filter(Boolean).join(' ') || '–'), 'Reference images: ' + files.length, 'Anything to add: ' + (fd.get('notes') || '–')].join('\n'); }
+  $('#df').addEventListener('submit', function (ev) {
+    ev.preventDefault(); var form = this, fd = new FormData(form);
+    fd.delete('links'); [].slice.call(document.querySelectorAll('#links .in')).forEach(function (i) { if (i.value.trim()) fd.append('links', i.value.trim()); });
+    var e = check(fd); showErr(e); if (e.length) return;
+    files.forEach(function (f) { fd.append('refs', f, f.name); });
+    var done = function (id, msg) { form.style.display = 'none'; var d = $('#done'); d.innerHTML = '<div style="font-size:40px">◆</div><h2>' + (LIVE ? 'Request received' : 'Preview: not sent') + '</h2><p>' + esc(msg) + '</p>' + (id ? '<p class="fine">Reference: ' + esc(id) + '</p>' : '') + '<pre>' + esc(summary(fd)) + '</pre><p><a href="../compare.html#diamond">Back to plans</a></p>'; d.classList.add('on'); d.scrollIntoView({ behavior: 'smooth' }); };
+    if (!LIVE) { done(null, 'This demo page does not send anything. In the live app this lands in JB\'s private Diamond queue (no email is sent automatically) and JB replies to set up the call. Here is what would be sent:'); return; }
+    var btn = $('#send'); btn.disabled = true; btn.textContent = 'Sending…';
+    fetch(LIVE.api, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json().then(function (j) { return [r.status, j]; }); }).then(function (x) {
+      btn.disabled = false; btn.textContent = 'Request my design call';
+      if (x[1].ok) done(x[1].id, x[1].message); else showErr(x[1].errors || [x[1].message || 'Something went wrong.']);
+    }).catch(function () { btn.disabled = false; btn.textContent = 'Request my design call'; showErr(['Network problem. Try again.']); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 Demo preview of a Holy Hails "No Heart" landing page at three tiers: **Bronze, Silver, Gold**. Not a production site. All streaming, merch, tip and social links are placeholders. Every page is `noindex`, `robots.txt` blocks all crawlers, and each page carries a "Demo / preview" banner.
 
 - `/` opens Gold full screen. The bottom switcher goes to Bronze | Silver | Gold | Compare.
+- **Diamond (round 11, suggested prices):** `compare.html#diamond` card → `diamond/` design-call request form (preview: nothing is sent). Fictional sample: `diamond-sample/gold/` (custom theme `aurelia-deco` 1.0.0) vs `diamond-sample/standard/`. Compiled themes: `themes/`.
 - **Video is a Gold option, not a tier.** The Gold hero has a 3D art | Video toggle; `?bg=video` opens it in video mode. `/gold-video/` redirects to `/gold/?bg=video`.
 - **Share** (top right on every page) opens the share sheet:
   - Bronze: copy link, social links and one default story card.

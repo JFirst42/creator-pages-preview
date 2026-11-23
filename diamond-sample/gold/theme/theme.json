@@ -1,0 +1,66 @@
+{
+ "id": "aurelia-deco",
+ "version": "1.0.0",
+ "api": 1,
+ "name": "Aurelia Deco",
+ "designer": "JB + Duke (Diamond sample)",
+ "made_for": "aurelia-sol (fictional sample creator)",
+ "prefix": "ad-",
+ "base": {
+  "hero": "classic",
+  "goldFx": false
+ },
+ "tokens": {
+  "bg": "#0a1120",
+  "bg2": "#0f1d2b",
+  "text": "#f4ead3",
+  "muted": "#cdbb8e",
+  "acc": "#d9b45a",
+  "acc2": "#1d6b57",
+  "card": "rgba(13,27,38,.78)",
+  "line": "rgba(217,180,90,.38)",
+  "on-acc": "#17120a"
+ },
+ "fonts": {
+  "display": "Limelight",
+  "body": "Cormorant Garamond",
+  "accent": "Poiret One"
+ },
+ "motion": {
+  "allowed": [
+   "rise",
+   "shimmer",
+   "float",
+   "glow"
+  ],
+  "hero_title": "shimmer"
+ },
+ "sections": [
+  {
+   "id": "residency",
+   "name": "Residency",
+   "fields": {
+    "kicker": "text",
+    "heading": "text",
+    "venue": "text",
+    "nights": "list:day|time|note",
+    "cta_label": "text",
+    "cta_url": "url"
+   },
+   "tpl": "<div class=\"card ad-residency\" data-motion=\"rise\"><img class=\"ad-fan\" src=\"{{@asset}}deco-fan.svg\" alt=\"\" data-motion=\"float\"><p class=\"ad-kicker\">{{kicker}}</p><h3 class=\"ad-h\" data-motion=\"shimmer\">{{heading}}</h3><p class=\"ad-venue\">{{venue}}</p><img class=\"ad-rule\" src=\"{{@asset}}deco-rule.svg\" alt=\"\"><ul class=\"ad-nights\">{{#nights}}<li><b>{{day}}</b><span>{{time}}</span><small>{{note}}</small></li>{{/nights}}</ul><a class=\"btn ad-cta\" href=\"{{url:cta_url}}\" data-motion=\"glow\" rel=\"noopener nofollow\">{{cta_label}}</a></div>"
+  },
+  {
+   "id": "press",
+   "name": "Press",
+   "fields": {
+    "quotes": "list:quote|source"
+   },
+   "tpl": "<div class=\"ad-press\">{{#quotes}}<blockquote class=\"card ad-quote\" data-motion=\"rise\"><p>{{quote}}</p><cite>{{source}}</cite></blockquote>{{/quotes}}</div>"
+  }
+ ],
+ "assets": [
+  "assets/deco-fan.svg",
+  "assets/deco-rule.svg"
+ ],
+ "sha256": "5707bb18035ab22c0a4f4f8d225d6fc6a315592e62d53243964112a3997b435f"
+}

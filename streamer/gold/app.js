@@ -7,7 +7,7 @@
   /* Creator hub live preview (?hub=1): the hub editor writes overrides to localStorage; only whitelisted content keys apply.
      Tier features (cfg.features) can never be changed from here. */
   const HUB = qs.has('hub');
-  const HUB_KEYS = ['title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture', 'tip_saying', 'music', 'accent', 'look', 'studio', 'brand', 'drop', 'photos', 'pro', 'section_titles', 'display'];
+  const HUB_KEYS = ['theme_data', 'title', 'tagline', 'links', 'feature_first', 'featured', 'sections', 'section_toggles', 'tip_methods', 'hero_bg', 'story', 'custom', 'faq', 'testimonials', 'palette_override', 'fan_capture', 'tip_saying', 'music', 'accent', 'look', 'studio', 'brand', 'drop', 'photos', 'pro', 'section_titles', 'display'];
   if (HUB) { try { const o = JSON.parse(localStorage.getItem('cp-hub-' + (cfg.hub_key || cfg.slug)) || 'null'); if (o) HUB_KEYS.forEach(k => { if (o[k] !== undefined && o[k] !== null) cfg[k] = (k === 'studio' || k === 'brand' || k === 'pro') && cfg[k] ? Object.assign({}, cfg[k], o[k]) : o[k]; }); } catch (e) {} }
   /* hub photo swaps: 'local:<slot>' points at a downscaled upload kept in this browser (demo); anything else is a page-relative path */
   const HKEY = cfg.hub_key || cfg.slug; const resImg = v => typeof v === 'string' && v.startsWith('local:') ? (localStorage.getItem('cp-hub-img-' + HKEY + '-' + v.slice(6)) || '') : v;
@@ -41,12 +41,18 @@
   /* round 7: lash / hair / nail Gold pages also get the Beauty Pro templates (look "pro"; beauty.js) */
   const BEAUTY = F.looks && !!window.CPBeauty && ['lash', 'hair', 'nail'].includes(cfg.vertical);
   const LOOKS = BEAUTY ? ['pro', 'studio', 'brand', 'art'] : F.looks ? ['art', 'studio', 'brand'] : F.studioPreview ? ['art', 'studio'] : ['art'];
+  /* round 11 (Diamond): a pinned custom theme package (cfg.theme_pkg, compiled + sandboxed by generator/themes.py or the backend at
+     request time). Gold only. It restyles the same page through stable CSS hooks and may add template sections; it never ships JS.
+     Unsupported API versions are ignored (standard look), so platform updates can't break a live Diamond page. */
+  const TP = (() => { const t = cfg.theme_pkg; return t && [1].includes(t.api) && F.sectionBuilder && Array.isArray(t.sections) && /^[a-z0-9-]+$/.test(t.id || '') ? t : null; })();
+  if (TP) { document.body.classList.add('cp-theme-' + TP.id); root.dataset.customTheme = TP.id + '@' + TP.version; }
   let LOOK = LOOKS.includes(cfg.look) ? cfg.look : 'art'; if (LOOKS.includes(qs.get('look'))) LOOK = qs.get('look');
+  if (TP) LOOK = 'art';   // a Diamond theme replaces the Looks
   const PRO = LOOK === 'pro';
   const SKIN = LOOK !== 'art' && !PRO && !!window.CPStudio; const STUDIO_LOCKED = SKIN && !F.looks;
   root.dataset.looks = LOOKS.join(','); root.dataset.lookNow = LOOK;
   if (PRO) window.CPBeauty.apply(cfg, root, qs); else if (SKIN) window.CPStudio.apply(cfg, root, LOOK); else root.dataset.look = 'art';
-  const GOLD = !!F.cinematicHero && !SKIN && !PRO;
+  const GOLD = !!F.cinematicHero && !SKIN && !PRO && !(TP && TP.base && TP.base.hero === 'classic');
   /* ---------- round 4: music (none | upload | link), theme motion accent, custom tip saying ----------
      No music = no sound bars anywhere: the hero gets a motion accent that fits the trade instead (accents.js). */
   if (HUB && cfg.music && cfg.music.mode === 'upload' && cfg.music.local) { try { const d = localStorage.getItem('cp-hub-audio-' + (cfg.hub_key || cfg.slug)); if (d) cfg.music.src = d; } catch (e) {} }
@@ -78,7 +84,7 @@
     try { (window.dataLayer = window.dataLayer || []).push(d); document.dispatchEvent(new CustomEvent('cp:track', { detail: d }));
       const k = 'cp-stats-' + (cfg.hub_key || cfg.slug), st = JSON.parse(localStorage.getItem(k) || '{}'), key = ev + (data && (data.method || data.id || data.platform) ? ':' + (data.method || data.id || data.platform) : '');
       st[key] = (st[key] || 0) + 1; localStorage.setItem(k, JSON.stringify(st)); } catch (e) {} };
-  window.CP = { cfg, F, STATIC, EXPAND, qs, track, MUSIC, ACCENT, cleanSaying, LOOK, secTitle, customTitle, cleanTitle, NUMS };
+  window.CP = { cfg, F, STATIC, EXPAND, qs, track, MUSIC, ACCENT, cleanSaying, LOOK, secTitle, customTitle, cleanTitle, NUMS, THEME: TP };
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const icon = (k, fill) => {
@@ -620,6 +626,21 @@
     infocards: ['Good to know', () => S5('infocards')],
     brandblocks: ['From the studio', () => S5('brandblocks')]
   };
+  /* round 11: Diamond theme sections ('t_<id>'), rendered from the compiled template + cfg.theme_data (creator-editable text only).
+     Every value is escaped; urls must be https/mailto/#anchor, images https, /media/ or a page-relative file. */
+  const TDATA = (cfg.theme_data && typeof cfg.theme_data === 'object') ? cfg.theme_data : {};
+  if (TP) TP.sections.forEach(s => { if (/^[a-z][a-z0-9_]{1,20}$/.test(s.id || '') && typeof s.tpl === 'string') SEC['t_' + s.id] = [String(s.name || s.id).slice(0, 24), () => themeSection(s)]; });
+  function themeSection(s) { const d = TDATA[s.id]; if (!d || typeof d !== 'object') return ''; const h = tplRender(s.tpl, d); if (!h) return ''; return F.sceneTransitions && !SKIN ? `<section class="sec${reveal} tsec tsec-${esc(s.id)}">${h}</section>` : sec(esc(secTitle('t_' + s.id, s.name)), '', h, 'tsec tsec-' + s.id); }   // Gold scenes already title the section
+  function tplRender(t, d) {
+    const E = v => esc(v).replace(/[{}]/g, c => '&#' + c.charCodeAt(0) + ';');
+    const val = (o, k) => { const v = o[k]; return typeof v === 'string' || typeof v === 'number' ? String(v).slice(0, 300) : ''; };
+    const url = v => (/^(https:\/\/|mailto:)[^\s"'<>]+$/i.test(v) || /^#[a-z0-9-]{0,30}$/i.test(v)) ? v : '#';
+    const img = v => (/^(https:\/\/[^\s"'<>]+|\/media\/[\w\/.-]+|[\w-]+(\/[\w-]+)*\.(jpe?g|png|webp))$/i.test(v) && !v.includes('..')) ? v : '';
+    const fill = (x, o) => x.replace(/\{\{(url:|img:)?([a-z_][a-z0-9_]*)\}\}/g, (_, m, k) => m === 'url:' ? E(url(val(o, k))) : m === 'img:' ? E(img(val(o, k))) : E(val(o, k)));
+    let out = t.replace(/\{\{#([a-z_][a-z0-9_]*)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (_, k, inner) => (Array.isArray(d[k]) ? d[k].slice(0, 12) : []).filter(x => x && typeof x === 'object').map(x => fill(inner, x)).join(''));
+    out = fill(out, d).replace(/\{\{@asset\}\}/g, E(String(TP.base_url || 'theme/') + 'assets/')).replace(/href="#book"/g, 'href="#book" data-act="scroll-book"');
+    return out.replace(/<[^>]+>/g, '').trim() || /<img/.test(out) ? out : '';
+  }
   function S5(k) { return F.studioModules && window.CPStudio ? window.CPStudio[k]({ cfg, look: LOOK, PORT, provider }) : ''; }
   /* Bronze + Silver use a fixed preset (tabs group several sections). Silver may hide a couple (SILVER_TOGGLES). Gold: cfg.sections. */
   const PRESETS = {
@@ -645,7 +666,8 @@
   };
   const REL = RELEVANT[VERT] || RELEVANT.music;
   const ALLOWED = new Set([...REL.core, ...REL.optional, ...(cfg.takes_bookings ? (REL.bookings || []) : []), ...(F.studioModules ? ['drop', 'flyers', 'infocards', 'brandblocks'] : [])]);
-  window.CP_SECTIONS = { relevant: RELEVANT, vertical: VERT, allowed: [...ALLOWED], ids: Object.keys(SEC), names: Object.fromEntries(Object.entries(SEC).map(([k, v]) => [k, v[0]])), presets: PRESETS, silverToggles: SILVER_TOGGLES };
+  if (TP) Object.keys(SEC).forEach(k => { if (k.startsWith('t_')) ALLOWED.add(k); });
+  window.CP_SECTIONS = { theme: TP ? { id: TP.id, version: TP.version, name: TP.name, sections: TP.sections.map(s => ({ id: 't_' + s.id, name: s.name, fields: s.fields })) } : null, relevant: RELEVANT, vertical: VERT, allowed: [...ALLOWED], ids: Object.keys(SEC), names: Object.fromEntries(Object.entries(SEC).map(([k, v]) => [k, v[0]])), presets: PRESETS, silverToggles: SILVER_TOGGLES };
   function panelsFor() {
     const lay = PRESETS[cfg.layout] ? cfg.layout : 'single';
     let out;
@@ -740,6 +762,16 @@
     document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-selected', x === b));
     document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('on', p.dataset.panel === b.dataset.tab));
     observeReveal();
+  /* round 11: Diamond motion presets. Only data-motion="rise|float|shimmer|glow" (CSS in base.css), only those the theme allows. */
+  (function themeMotion() {
+    if (!TP) return; const mt = TP.motion || {}; const ok = new Set((mt.allowed || []).filter(m => ['rise', 'float', 'shimmer', 'glow'].includes(m)));
+    document.querySelectorAll('#app [data-motion]').forEach(el => { if (!ok.has(el.dataset.motion)) el.removeAttribute('data-motion'); });
+    if (ok.has(mt.hero_title)) document.querySelectorAll('#app .hero .title').forEach(el => { el.dataset.motion = mt.hero_title; });
+    const R = [...document.querySelectorAll('#app [data-motion=rise]')];
+    if (STATIC || EXPAND || !('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) { R.forEach(el => el.classList.add('m-in')); return; }
+    const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add('m-in'); io.unobserve(en.target); } }), { threshold: .1 });
+    R.forEach(el => io.observe(el));
+  })();
   }));
   if (qs.get('tab') && !EXPAND) { const b = document.querySelector(`[data-tab="${qs.get('tab')}"]`); b && b.click(); }
 

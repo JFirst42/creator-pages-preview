@@ -210,3 +210,6 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}td,th{padding:8px 6px
 .ioshint{margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(120,170,255,.1);border:1px solid rgba(120,170,255,.35);font-size:12.5px}
 .r.hl{border-color:var(--acc,#ffd23f);box-shadow:0 0 0 2px rgba(255,210,63,.35)}
 @media (max-width:620px){.nmodes{grid-template-columns:1fr}}
+/* round 11: Diamond design box */
+.diamond-box{border:1px solid rgba(191,233,255,.45);background:linear-gradient(160deg,rgba(191,233,255,.08),rgba(201,184,255,.06))}
+.diamond-box h3{color:#bfe9ff}.tdsec{border-top:1px solid rgba(255,255,255,.08);padding:8px 0}.tdsec summary{cursor:pointer;padding:4px 0}.tdsec summary small{opacity:.7;font-weight:600}

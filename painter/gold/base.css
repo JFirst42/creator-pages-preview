@@ -485,3 +485,15 @@ html[data-nums="0"] .g-chapter{padding-left:14px}
 html[data-nums="0"] .scene-h{gap:0}
 /* round 8: footer legal line meets AA on light themes (was muted at 75% opacity) */
 [data-theme=light] .legal{opacity:1;color:color-mix(in srgb,var(--text) 72%,var(--bg))}
+
+/* ---------- round 11: Diamond theme motion presets (the only motion a custom theme can use; no theme JavaScript) ---------- */
+#app [data-motion=rise]{opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+#app [data-motion=rise].m-in{opacity:1;transform:none}
+#app [data-motion=float]{animation:cpm-float 6s ease-in-out infinite}
+#app [data-motion=shimmer]{background:linear-gradient(100deg,var(--acc) 35%,#fff6dc 50%,var(--acc) 65%) 0 0/260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:cpm-shimmer 5s linear infinite}
+#app [data-motion=glow]{animation:cpm-glow 3.6s ease-in-out infinite}
+@keyframes cpm-float{50%{transform:translateY(-7px)}}
+@keyframes cpm-shimmer{to{background-position:-260% 0}}
+@keyframes cpm-glow{50%{box-shadow:0 0 0 1px var(--acc),0 0 26px -2px var(--acc)}}
+@media (prefers-reduced-motion:reduce){#app [data-motion]{animation:none!important;transition:none!important}#app [data-motion=rise]{opacity:1;transform:none}}
+html.freeze #app [data-motion]{animation:none!important;transition:none!important}html.freeze #app [data-motion=rise],html.noreveal #app [data-motion=rise]{opacity:1;transform:none}
